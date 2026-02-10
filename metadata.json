@@ -1,5 +1,7 @@
 {
   "name": "BCI Journey: The Neuro-Link",
   "description": "A gamified, cyber-organic exploration of the human brain. Navigate through 3D neural pathways, unlock anatomical worlds, and learn neuroscience through a futuristic interface.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

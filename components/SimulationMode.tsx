@@ -2,18 +2,24 @@ import React, { useEffect, useState, useRef } from 'react';
 import { WorldData, SimulationScript } from '../types';
 import { generateSimulationScript, generateCharacterImage, generateCharacterSpeech } from '../services/geminiService';
 import { decodeAudioData, playAudioBuffer } from '../utils/audioUtils';
-import { Zap, Activity, ArrowRight, Loader2, Maximize } from 'lucide-react';
+import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users } from 'lucide-react';
+import LiveSession from './LiveSession';
 
 interface SimulationModeProps {
   world: WorldData;
   onExit: () => void;
 }
 
+type Phase = 'script' | 'selection' | 'live';
+type LiveMode = 'Synapse' | 'Spark' | 'Duo' | null;
+
 const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
   const [script, setScript] = useState<SimulationScript | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generatingMedia, setGeneratingMedia] = useState(false);
+  const [phase, setPhase] = useState<Phase>('script');
+  const [liveMode, setLiveMode] = useState<LiveMode>(null);
   
   // Media States
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -80,9 +86,19 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
             await loadStepMedia(script.exchanges[nextIdx], audioContext);
         }
     } else {
-        // End of sequence
-        onExit();
+        // End of sequence, transition to Live Selection
+        setPhase('selection');
     }
+  };
+
+  const startLiveSession = (mode: LiveMode) => {
+    setLiveMode(mode);
+    setPhase('live');
+  };
+
+  const endLiveSession = () => {
+    setLiveMode(null);
+    onExit(); // Or return to selection? Prompt says "End session by encouraging... to check Lesson Learned", implying end of flow.
   };
 
   if (loading || !script) {
@@ -95,6 +111,66 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
     );
   }
 
+  // --- Phase 3: Live Session ---
+  if (phase === 'live' && liveMode) {
+    return <LiveSession mode={liveMode} onClose={endLiveSession} />;
+  }
+
+  // --- Phase 2.5: Character Selection ---
+  if (phase === 'selection') {
+    return (
+      <div className="absolute inset-0 bg-cyber-black z-50 flex flex-col items-center justify-center p-8">
+         <div className="text-center mb-12">
+            <h2 className="text-4xl font-orbitron text-white mb-4 tracking-widest">SIMULATION COMPLETE</h2>
+            <p className="text-gray-400 font-rajdhani text-lg">Initialize Voice Link for Deeper Learning</p>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
+            {/* Synapse Option */}
+            <button 
+              onClick={() => startLiveSession('Synapse')}
+              className="group relative bg-indigo-900/20 border border-neon-blue/30 hover:border-neon-blue rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-neon-blue/10"
+            >
+              <div className="w-24 h-24 rounded-full bg-neon-blue/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#00f3ff] transition-shadow">
+                <Activity className="w-12 h-12 text-neon-blue" />
+              </div>
+              <h3 className="text-xl font-orbitron text-neon-blue mb-2">SYNAPSE</h3>
+              <p className="text-center text-gray-400 text-sm font-mono">The Biological Expert<br/>"Ask me about the neurons."</p>
+            </button>
+
+             {/* Duo Option */}
+             <button 
+              onClick={() => startLiveSession('Duo')}
+              className="group relative bg-purple-900/20 border border-neon-pink/30 hover:border-neon-pink rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-neon-pink/10"
+            >
+              <div className="w-24 h-24 rounded-full bg-neon-pink/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#ff00ff] transition-shadow">
+                <Users className="w-12 h-12 text-neon-pink" />
+              </div>
+              <h3 className="text-xl font-orbitron text-neon-pink mb-2">DUO MODE</h3>
+              <p className="text-center text-gray-400 text-sm font-mono">Triple Threat Banter<br/>"Let's debate the tech!"</p>
+            </button>
+
+            {/* Spark Option */}
+            <button 
+              onClick={() => startLiveSession('Spark')}
+              className="group relative bg-yellow-900/20 border border-electric-gold/30 hover:border-electric-gold rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-electric-gold/10"
+            >
+              <div className="w-24 h-24 rounded-full bg-electric-gold/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#ffd700] transition-shadow">
+                <Zap className="w-12 h-12 text-electric-gold" />
+              </div>
+              <h3 className="text-xl font-orbitron text-electric-gold mb-2">SPARK</h3>
+              <p className="text-center text-gray-400 text-sm font-mono">The Tech Expert<br/>"Ask me about the signals."</p>
+            </button>
+         </div>
+
+         <button onClick={onExit} className="mt-16 text-gray-500 hover:text-white font-mono text-xs uppercase tracking-widest hover:underline">
+            Skip Voice Link & Return to Map
+         </button>
+      </div>
+    );
+  }
+
+  // --- Phase 2: Scripted Dialogue ---
   const currentExchange = script.exchanges[currentStep];
   const isSynapse = currentExchange.speaker === 'Synapse';
   const isSpark = currentExchange.speaker === 'Spark';
@@ -151,38 +227,45 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
         
         {/* Synapse Portrait (Left) */}
         <div className={`transition-all duration-500 transform ${isSynapse || isBoth ? 'scale-110 opacity-100' : 'scale-90 opacity-50 grayscale'}`}>
-            <div className="w-24 h-24 rounded-full border-2 border-neon-blue bg-indigo-900/20 flex items-center justify-center relative overflow-hidden shadow-[0_0_20px_#00f3ff]">
-                <div className="absolute inset-0 bg-neon-blue/10 animate-pulse-slow"></div>
+            <div className={`w-24 h-24 rounded-full border-2 border-neon-blue bg-indigo-900/20 flex items-center justify-center relative overflow-hidden transition-all duration-300 ${isSynapse || isBoth ? 'shadow-[0_0_40px_#00f3ff]' : 'shadow-[0_0_15px_#00f3ff]'}`}>
+                <div className={`absolute inset-0 bg-neon-blue/20 ${isSynapse || isBoth ? 'animate-pulse' : ''}`}></div>
                 <Activity className="w-10 h-10 text-neon-blue relative z-10" />
             </div>
             <p className="text-center mt-2 font-orbitron text-neon-blue text-sm tracking-widest">SYNAPSE</p>
         </div>
 
         {/* Text Area */}
-        <div className="flex-1 bg-white/5 border border-white/10 rounded-lg p-6 h-full relative group">
-            <h3 className="font-mono text-xs text-gray-400 mb-2 uppercase tracking-widest">
-                {script.question}
-            </h3>
-            <p className={`font-rajdhani text-2xl leading-relaxed ${isSynapse ? 'text-neon-blue' : isSpark ? 'text-electric-gold' : 'text-white'}`}>
-                "{currentExchange.text}"
-            </p>
-            
-            {/* Next Button */}
-            <div className="absolute bottom-6 right-6">
-                 <button 
-                    onClick={handleNext}
-                    disabled={generatingMedia}
-                    className="flex items-center gap-2 bg-white text-black px-6 py-2 rounded font-bold font-orbitron hover:bg-neon-blue hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                    {currentStep < script.exchanges.length - 1 ? 'CONTINUE' : 'COMPLETE'} <ArrowRight className="w-4 h-4" />
-                 </button>
+        <div className="flex-1 h-full relative group flex flex-col">
+            {/* Question Display - Moved OUTSIDE and ABOVE the dialogue box context visually, but structurally here for flex layout */}
+            <div className="mb-3 px-1">
+                <h3 className="font-orbitron text-sm text-neon-pink uppercase tracking-widest flex items-center gap-2">
+                   <span className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></span>
+                   QUERY: {script.question}
+                </h3>
+            </div>
+
+            <div className="flex-1 bg-white/5 border border-white/10 rounded-lg p-6 relative">
+                <p className={`font-rajdhani text-2xl leading-relaxed ${isSynapse ? 'text-neon-blue' : isSpark ? 'text-electric-gold' : 'text-white'}`}>
+                    "{currentExchange.text}"
+                </p>
+                
+                {/* Next Button */}
+                <div className="absolute bottom-6 right-6">
+                    <button 
+                        onClick={handleNext}
+                        disabled={generatingMedia}
+                        className="flex items-center gap-2 bg-white text-black px-6 py-2 rounded font-bold font-orbitron hover:bg-neon-blue hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {currentStep < script.exchanges.length - 1 ? 'CONTINUE' : 'INITIALIZE LINK'} <ArrowRight className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
         </div>
 
         {/* Spark Portrait (Right) */}
         <div className={`transition-all duration-500 transform ${isSpark || isBoth ? 'scale-110 opacity-100' : 'scale-90 opacity-50 grayscale'}`}>
-            <div className="w-24 h-24 rounded-full border-2 border-electric-gold bg-yellow-900/20 flex items-center justify-center relative overflow-hidden shadow-[0_0_20px_#ffd700]">
-                 <div className="absolute inset-0 bg-electric-gold/10 animate-pulse-slow"></div>
+            <div className={`w-24 h-24 rounded-full border-2 border-electric-gold bg-yellow-900/20 flex items-center justify-center relative overflow-hidden transition-all duration-300 ${isSpark || isBoth ? 'shadow-[0_0_40px_#ffd700]' : 'shadow-[0_0_15px_#ffd700]'}`}>
+                 <div className={`absolute inset-0 bg-electric-gold/20 ${isSpark || isBoth ? 'animate-pulse' : ''}`}></div>
                  <Zap className="w-10 h-10 text-electric-gold relative z-10" />
             </div>
             <p className="text-center mt-2 font-orbitron text-electric-gold text-sm tracking-widest">SPARK</p>
