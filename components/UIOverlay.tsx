@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database } from 'lucide-react';
+import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { WorldData, GeneratedContent } from '../types';
 import { generateWorldBriefing } from '../services/geminiService';
 
@@ -50,6 +50,10 @@ const DataCard: React.FC<{ title: string; icon: React.ReactNode; children: React
 const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSimulation }) => {
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Profile Dropdown State
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (selectedWorld) {
@@ -63,11 +67,23 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
     }
   }, [selectedWorld]);
 
+  // Handle outside click for profile dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (!selectedWorld) {
     return (
       <div className="absolute top-0 left-0 p-8 pointer-events-none z-10 w-full h-full flex flex-col justify-between">
-        <header>
-          <div className="flex items-center gap-3">
+        <header className="flex justify-between items-start w-full">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 pointer-events-auto">
              <div className="p-2 bg-neon-blue/20 rounded-full border border-neon-blue animate-pulse shadow-[0_0_15px_rgba(0,243,255,0.3)]">
                 <Brain className="w-8 h-8 text-neon-blue" />
              </div>
@@ -80,6 +96,91 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
                   PHASE 1: NEURAL CARTOGRAPHY
                 </p>
              </div>
+          </div>
+
+          {/* Profile Section */}
+          <div className="relative pointer-events-auto" ref={profileRef}>
+             <button 
+               onClick={() => setIsProfileOpen(!isProfileOpen)}
+               className="flex items-center gap-3 group focus:outline-none"
+             >
+                <div className="text-right hidden md:block">
+                   <p className="font-orbitron text-white text-xs tracking-widest group-hover:text-neon-blue transition-colors">NEURAL CADET</p>
+                   <p className="font-mono text-gray-500 text-[10px] flex items-center justify-end gap-1">
+                     STATUS: ONLINE <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                   </p>
+                </div>
+                
+                <div className="relative">
+                    <div className="w-12 h-12 rounded-full border-2 border-white/20 bg-gray-900 flex items-center justify-center overflow-hidden group-hover:border-neon-blue group-hover:shadow-[0_0_15px_rgba(0,243,255,0.3)] transition-all">
+                        {/* Placeholder Profile Image */}
+                        <img 
+                          src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop" 
+                          alt="Profile" 
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                        />
+                    </div>
+                    {/* Status Indicator Badge */}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black z-10"></div>
+                </div>
+
+                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isProfileOpen ? 'rotate-180 text-neon-blue' : ''}`} />
+             </button>
+
+             {isProfileOpen && (
+                <div className="absolute right-0 top-16 w-64 bg-cyber-black/95 backdrop-blur-xl border border-neon-blue/30 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                    {/* User Info Header */}
+                    <div className="p-4 border-b border-white/10 bg-white/5 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-2 opacity-20">
+                            <Activity className="w-16 h-16 text-neon-blue" />
+                        </div>
+                        <div className="flex items-center gap-3 mb-3 relative z-10">
+                             <div className="w-10 h-10 rounded-full bg-neon-blue/20 flex items-center justify-center border border-neon-blue/50 overflow-hidden">
+                                 <img 
+                                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop" 
+                                    alt="Profile" 
+                                    className="w-full h-full object-cover"
+                                  />
+                             </div>
+                             <div>
+                                 <p className="font-orbitron text-white text-sm">NEURAL CADET</p>
+                                 <p className="font-mono text-gray-400 text-xs">ID: 8492-AX</p>
+                             </div>
+                        </div>
+                        <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mb-1">
+                            <div className="bg-gradient-to-r from-neon-blue to-neon-pink h-full w-[35%]"></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-mono">
+                            <span className="text-neon-blue">XP: 350</span>
+                            <span className="text-gray-500">NEXT: LEVEL 2</span>
+                        </div>
+                    </div>
+                    
+                    {/* Menu Items */}
+                    <div className="py-2">
+                        <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
+                            <Settings className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" /> 
+                            Interface Settings
+                        </button>
+                        <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
+                            <Database className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" /> 
+                            Data Archives
+                        </button>
+                         <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
+                            <FileText className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" /> 
+                            Mission Logs
+                        </button>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="border-t border-white/10 py-2 bg-black/40">
+                        <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-red-400 hover:bg-red-900/20 flex items-center gap-3 transition-colors group">
+                            <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> 
+                            Terminate Link
+                        </button>
+                    </div>
+                </div>
+             )}
           </div>
         </header>
         
