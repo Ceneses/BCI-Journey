@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
-import { Mic, MicOff, X, Activity, Zap, Radio, MessageSquare, User, Cpu, ClipboardCheck, ArrowRight, ChevronRight } from 'lucide-react';
+import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from "@google/genai";
+import { Mic, MicOff, X, Activity, Zap, Radio, MessageSquare, User, Cpu, ClipboardCheck, ArrowRight, ChevronRight, Image as ImageIcon, Loader2, Minimize2, AlertTriangle } from 'lucide-react';
 import { AudioStreamer } from '../utils/audioStreamer';
+import { generateCharacterImage } from '../services/geminiService';
 
 interface LiveSessionProps {
-  mode: 'Synapse' | 'Spark' | 'Duo';
+  mode: 'Synapse' | 'Spark';
   onClose: () => void;
 }
 
@@ -18,7 +19,12 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
   const [volume, setVolume] = useState(0);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   
+  // Image Generation State
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
   // Transcript State
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [realtimeInput, setRealtimeInput] = useState("");
@@ -50,19 +56,39 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
 
       const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
+      // Tool Definitions
+      const endSessionTool: FunctionDeclaration = {
+        name: "endSession",
+        description: "End the live session when the user is satisfied or the lesson is complete."
+      };
+
+      const renderImageTool: FunctionDeclaration = {
+        name: "renderImage",
+        description: "Render a visual representation or image of a biological or technical concept for the user.",
+        parameters: {
+            type: Type.OBJECT,
+            properties: {
+                prompt: {
+                    type: Type.STRING,
+                    description: "Description of the image to generate.",
+                },
+            },
+            required: ["prompt"],
+        },
+      };
+
       // Configure Persona
       let sysInstruction = "";
       let voiceName = "Kore"; 
 
+      const baseInstruction = "Keep responses under 45 seconds. You can use the 'renderImage' tool to visualize concepts if asked or helpful. Always summarize key takeaways as 'Lesson Learned' bullet points before ending. When the conversation reaches a natural conclusion or the user is satisfied, call the 'endSession' tool.";
+
       if (mode === 'Synapse') {
-        sysInstruction = "You are Synapse, a biological expert. Vibe: Calm, soothing, deep focus. Explain the 'why' and biology. Keep responses under 45 seconds. End session by encouraging the user to check the 'Lesson Learned' bullet points.";
+        sysInstruction = `You are Synapse, a biological expert. Vibe: Calm, soothing, deep focus. Explain the 'why' and biology. ${baseInstruction}`;
         voiceName = "Kore";
-      } else if (mode === 'Spark') {
-        sysInstruction = "You are Spark, a tech expert. Vibe: High energy, fast-talking, gamer style. Explain the digital/tech side. Keep responses under 45 seconds. End session by encouraging the user to check the 'Lesson Learned' bullet points.";
-        voiceName = "Fenrir";
       } else {
-        sysInstruction = "You are hosting a podcast-style session with two personas: Synapse (Biology, Calm) and Spark (Tech, Energetic). You must roleplay both sides or act as a mediator allowing them to banter. Keep responses under 45 seconds. End session by encouraging the user to check the 'Lesson Learned' bullet points.";
-        voiceName = "Puck"; 
+        sysInstruction = `You are Spark, a tech expert. Vibe: High energy, fast-talking, gamer style. Explain the digital/tech side. ${baseInstruction}`;
+        voiceName = "Fenrir";
       }
 
       // Initialize Audio Streamer
@@ -82,6 +108,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
               voiceConfig: { prebuiltVoiceConfig: { voiceName } },
             },
             systemInstruction: sysInstruction,
+            tools: [{ functionDeclarations: [endSessionTool, renderImageTool] }],
             inputAudioTranscription: {},
             outputAudioTranscription: {},
           },
@@ -96,6 +123,20 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
             onmessage: (msg: LiveServerMessage) => {
               if (!isMounted) return;
               
+              // Handle Tool Calls
+              if (msg.toolCall) {
+                for (const fc of msg.toolCall.functionCalls) {
+                    if (fc.name === 'endSession') {
+                         handleEndSession();
+                         return;
+                    }
+                    if (fc.name === 'renderImage') {
+                        const prompt = fc.args['prompt'] as string;
+                        handleRenderImage(prompt, fc.id);
+                    }
+                }
+              }
+
               const serverContent = msg.serverContent;
               if (!serverContent) return;
 
@@ -170,6 +211,9 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
       isMounted = false;
       cancelAnimationFrame(animationRef.current);
       audioStreamerRef.current?.stopRecording();
+      if (sessionRef.current) {
+          try { sessionRef.current.close(); } catch(e) {}
+      }
     };
   }, [mode, isMicOn, sessionStatus]);
 
@@ -182,6 +226,40 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
           animationRef.current = requestAnimationFrame(loop);
       };
       loop();
+  };
+
+  const handleRenderImage = async (prompt: string, toolId: string) => {
+     setIsGeneratingImage(true);
+     setGeneratedImage(null);
+     
+     try {
+        const base64Data = await generateCharacterImage(prompt);
+        setGeneratedImage(`data:image/png;base64,${base64Data}`);
+        
+        // Respond to tool call
+        if (sessionRef.current) {
+            sessionRef.current.sendToolResponse({
+                functionResponses: [{
+                    id: toolId,
+                    name: 'renderImage',
+                    response: { result: 'Image rendered successfully.' }
+                }]
+            });
+        }
+     } catch (e) {
+        console.error("Image generation failed", e);
+        if (sessionRef.current) {
+            sessionRef.current.sendToolResponse({
+                functionResponses: [{
+                    id: toolId,
+                    name: 'renderImage',
+                    response: { result: 'Error: Failed to render image.' }
+                }]
+            });
+        }
+     } finally {
+        setIsGeneratingImage(false);
+     }
   };
 
   const toggleMic = () => {
@@ -198,6 +276,40 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
   return (
     <div className="absolute inset-0 z-50 bg-black/95 backdrop-blur-xl flex animate-in fade-in duration-500 overflow-hidden">
       
+      {/* Exit Confirmation Modal */}
+      {showExitConfirmation && (
+        <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200">
+            <div className="bg-cyber-black border border-white/20 p-8 rounded-lg max-w-sm w-full shadow-[0_0_30px_rgba(0,0,0,0.8)] text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                     <AlertTriangle className="w-8 h-8 text-red-500" />
+                </div>
+
+                <h3 className="text-xl font-orbitron text-white mb-2 tracking-widest">TERMINATE LINK?</h3>
+                <p className="font-rajdhani text-gray-400 mb-8 text-sm">Are you sure you want to end this session?</p>
+                
+                <div className="flex gap-4 justify-center">
+                    <button 
+                        onClick={() => setShowExitConfirmation(false)}
+                        className="px-6 py-2 rounded border border-white/20 hover:bg-white/10 text-white font-orbitron text-xs tracking-wider"
+                    >
+                        No, continue
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setShowExitConfirmation(false);
+                            handleEndSession();
+                        }}
+                        className="px-6 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-orbitron text-xs tracking-wider shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+                    >
+                        Yes, end session
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* Main Content (Visualizer & Summary Overlay) */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
         
@@ -254,53 +366,92 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose }) => {
           <div className="flex items-center gap-3">
              <Radio className={`w-6 h-6 ${isConnected ? 'text-red-500 animate-pulse' : 'text-gray-500'}`} />
              <span className="font-orbitron text-white tracking-widest text-sm md:text-base">
-               LIVE UPLINK: <span className={mode === 'Synapse' ? 'text-neon-blue' : mode === 'Spark' ? 'text-electric-gold' : 'text-neon-pink'}>{mode.toUpperCase()}</span>
+               LIVE UPLINK: <span className={mode === 'Synapse' ? 'text-neon-blue' : 'text-electric-gold'}>{mode.toUpperCase()}</span>
              </span>
           </div>
-          <button onClick={handleEndSession} className="p-2 rounded-full border border-white/20 hover:bg-white/10 text-white transition-colors">
+          <button 
+            onClick={() => setShowExitConfirmation(true)} 
+            className="p-2 rounded-full border border-white/20 hover:bg-white/10 text-white transition-colors"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Dynamic Visualizer Ring */}
-        <div className={`relative w-[300px] h-[300px] flex items-center justify-center mb-12 transition-all duration-500 ${sessionStatus === 'summary' ? 'opacity-10 scale-90 blur-sm' : 'opacity-100'}`}>
+        {/* Dynamic Visualizer Ring OR Image View */}
+        <div className={`relative w-[400px] h-[400px] flex items-center justify-center mb-8 transition-all duration-500 ${sessionStatus === 'summary' ? 'opacity-10 scale-90 blur-sm' : 'opacity-100'}`}>
           
-          {/* Reactive Glow Background */}
-          <div 
-              className={`absolute inset-0 blur-3xl rounded-full transition-opacity duration-100 ${
-                  mode === 'Synapse' ? 'bg-neon-blue' : mode === 'Spark' ? 'bg-electric-gold' : 'bg-neon-pink'
-              }`}
-              style={{ 
-                  opacity: 0.1 + (volume / 200),
-                  transform: 'scale(1.2)' 
-              }}
-          ></div>
+          {generatedImage ? (
+            <div className="relative w-full h-full rounded-lg overflow-hidden border border-white/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-500 bg-black">
+                <img src={generatedImage} alt="Generated Visualization" className="w-full h-full object-cover" />
+                <div className="absolute top-2 right-2 flex gap-2">
+                   <button onClick={() => setGeneratedImage(null)} className="p-1 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur">
+                       <Minimize2 className="w-5 h-5" />
+                   </button>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 to-transparent p-4">
+                    <p className="text-neon-blue font-mono text-xs uppercase tracking-widest flex items-center gap-2">
+                        <ImageIcon className="w-3 h-3" /> Visual Data Rendered
+                    </p>
+                </div>
+            </div>
+          ) : isGeneratingImage ? (
+             <div className="flex flex-col items-center justify-center gap-4">
+                <Loader2 className="w-16 h-16 text-neon-blue animate-spin" />
+                <p className="font-mono text-neon-blue animate-pulse text-sm">RENDERING VISUAL DATA...</p>
+             </div>
+          ) : (
+            <>
+                {/* Reactive Glow Background */}
+                <div 
+                    className={`absolute inset-0 blur-[60px] rounded-full transition-all duration-75 ${
+                        mode === 'Synapse' ? 'bg-neon-blue' : 'bg-electric-gold'
+                    }`}
+                    style={{ 
+                        opacity: 0.2 + (volume / 300),
+                        transform: `scale(${1 + volume / 400})` 
+                    }}
+                ></div>
 
-          {/* Core Icon */}
-          <div className="relative z-10 w-32 h-32 rounded-full border border-white/20 bg-black/50 backdrop-blur-md flex items-center justify-center shadow-2xl">
-              {mode === 'Synapse' && <Activity className="w-12 h-12 text-neon-blue" />}
-              {mode === 'Spark' && <Zap className="w-12 h-12 text-electric-gold" />}
-              {mode === 'Duo' && <div className="flex gap-1"><Activity className="w-8 h-8 text-neon-blue"/><Zap className="w-8 h-8 text-electric-gold"/></div>}
-          </div>
+                {/* Central Core */}
+                <div 
+                    className={`relative z-20 w-32 h-32 rounded-full border-2 bg-black/80 backdrop-blur-xl flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-75 ${
+                        mode === 'Synapse' ? 'border-neon-blue shadow-neon-blue/20' : 'border-electric-gold shadow-electric-gold/20'
+                    }`}
+                    style={{ transform: `scale(${1 + volume / 600})` }}
+                >
+                    {mode === 'Synapse' && <Activity className={`w-12 h-12 text-neon-blue transition-opacity duration-100`} style={{ opacity: 0.5 + volume/200 }} />}
+                    {mode === 'Spark' && <Zap className={`w-12 h-12 text-electric-gold transition-opacity duration-100`} style={{ opacity: 0.5 + volume/200 }} />}
+                </div>
 
-          {/* Pulsating Rings */}
-          {[1, 2, 3].map(i => (
-              <div 
-                  key={i}
-                  className={`absolute rounded-full border transition-all duration-75 ease-out ${
-                       mode === 'Synapse' ? 'border-neon-blue' : mode === 'Spark' ? 'border-electric-gold' : 'border-neon-pink'
-                  }`}
-                  style={{
-                      width: `${130 + (i * 20) + (volume * i * 0.8)}px`,
-                      height: `${130 + (i * 20) + (volume * i * 0.8)}px`,
-                      opacity: Math.max(0, 0.4 - (i * 0.1) + (volume / 400)),
-                      zIndex: 5 - i
-                  }}
-              />
-          ))}
+                {/* Audio Wave Rings */}
+                {[...Array(6)].map((_, i) => (
+                    <div 
+                        key={i}
+                        className={`absolute rounded-full border transition-all duration-75 ease-out ${
+                            mode === 'Synapse' ? 'border-neon-blue' : 'border-electric-gold'
+                        }`}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            borderWidth: '1px',
+                            opacity: Math.max(0, (volume / 200) - (i * 0.1)),
+                            transform: `scale(${0.5 + (i * 0.15) + (volume / 500)})`,
+                            zIndex: 10 - i
+                        }}
+                    />
+                ))}
 
-          {/* Static Deco Ring */}
-          <div className="absolute inset-0 border border-white/5 rounded-full animate-[spin_20s_linear_infinite] pointer-events-none"></div>
+                {/* Spinning Data Ring */}
+                <div className={`absolute w-[280px] h-[280px] rounded-full border border-dashed opacity-30 animate-[spin_10s_linear_infinite] ${
+                        mode === 'Synapse' ? 'border-neon-blue' : 'border-electric-gold'
+                }`}></div>
+                
+                <div className={`absolute w-[320px] h-[320px] rounded-full border border-dotted opacity-20 animate-[spin_15s_linear_infinite_reverse] ${
+                        mode === 'Synapse' ? 'border-neon-blue' : 'border-electric-gold'
+                }`}></div>
+            </>
+          )}
+
         </div>
 
         {/* Status Text */}

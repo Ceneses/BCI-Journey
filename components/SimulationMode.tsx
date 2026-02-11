@@ -11,7 +11,7 @@ interface SimulationModeProps {
 }
 
 type Phase = 'script' | 'selection' | 'live';
-type LiveMode = 'Synapse' | 'Spark' | 'Duo' | null;
+type LiveMode = 'Synapse' | 'Spark' | null;
 
 const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
   const [script, setScript] = useState<SimulationScript | null>(null);
@@ -125,7 +125,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
             <p className="text-gray-400 font-rajdhani text-lg">Initialize Voice Link for Deeper Learning</p>
          </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
             {/* Synapse Option */}
             <button 
               onClick={() => startLiveSession('Synapse')}
@@ -136,18 +136,6 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit }) => {
               </div>
               <h3 className="text-xl font-orbitron text-neon-blue mb-2">SYNAPSE</h3>
               <p className="text-center text-gray-400 text-sm font-mono">The Biological Expert<br/>"Ask me about the neurons."</p>
-            </button>
-
-             {/* Duo Option */}
-             <button 
-              onClick={() => startLiveSession('Duo')}
-              className="group relative bg-purple-900/20 border border-neon-pink/30 hover:border-neon-pink rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-neon-pink/10"
-            >
-              <div className="w-24 h-24 rounded-full bg-neon-pink/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#ff00ff] transition-shadow">
-                <Users className="w-12 h-12 text-neon-pink" />
-              </div>
-              <h3 className="text-xl font-orbitron text-neon-pink mb-2">DUO MODE</h3>
-              <p className="text-center text-gray-400 text-sm font-mono">Triple Threat Banter<br/>"Let's debate the tech!"</p>
             </button>
 
             {/* Spark Option */}
