@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import BCIJourney from './components/BCIJourney';
 
 function App() {
-  const [page, setPage] = useState<'landing' | 'journey'>('landing');
-
   return (
-    <>
-      {page === 'landing' && <LandingPage onStart={() => setPage('journey')} />}
-      {page === 'journey' && <BCIJourney />}
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/journey" element={<BCIJourney />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
