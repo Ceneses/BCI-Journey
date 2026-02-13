@@ -59,9 +59,9 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
         localStorage.setItem(`tutorial_seen_${worldId}`, 'true');
     };
 
-    const loadQuestions = async () => {
+    const loadQuestions = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const worldQuestions = await loadWorldQuestions(worldId);
             const networkStructure = mapQuestionsToNetwork(worldQuestions.questions);
 
@@ -83,11 +83,11 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                 nodes: updatedNodes
             });
 
-            setLoading(false);
+            if (!silent) setLoading(false);
         } catch (err) {
             console.error('Failed to load questions:', err);
             setError('Failed to load neural network. Please try again.');
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -100,7 +100,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
         markQuestionComplete(worldId, node.questionId);
 
         // Reload to update unlocked states
-        loadQuestions();
+        loadQuestions(true);
     };
 
     const handleBack = () => {
