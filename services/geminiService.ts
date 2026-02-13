@@ -40,15 +40,6 @@ export const generateWorldBriefing = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            briefing: { type: Type.STRING },
-            funFact: { type: Type.STRING },
-          },
-          required: ["title", "briefing", "funFact"],
-        },
       },
     });
 
@@ -70,55 +61,102 @@ export const generateWorldBriefing = async (
 // --- Phase 2: Simulation Content ---
 
 export const generateSimulationScript = async (regionName: string, specificQuestion?: string): Promise<SimulationScript> => {
-  const client = getAIClient();
+  try {
+    const client = getAIClient();
 
-  const questionPrompt = specificQuestion
-    ? `The question to answer is: "${specificQuestion}"`
-    : `Create 1 Question about this brain region`;
-
-  const response = await client.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Generate a dialogue for a game level in the ${regionName}.
-    Characters:
-    - Synapse: Biological, calm, deep focus.
-    - Spark: Digital, energetic, tech focus.
-    
-    ${questionPrompt} and create a 3-part dialogue explaining it.
-    
-    Output JSON format:
-    {
-      "question": "The question title",
-      "exchanges": [
-        { "speaker": "Synapse", "text": "...", "imagePrompt": "Description for a 3D organic render..." },
-        { "speaker": "Spark", "text": "...", "imagePrompt": "Description for a 3D digital/tech render..." },
-        { "speaker": "Both", "text": "...", "imagePrompt": "Description of them combining..." }
-      ]
-    }`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          question: { type: Type.STRING },
-          exchanges: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                speaker: { type: Type.STRING },
-                text: { type: Type.STRING },
-                imagePrompt: { type: Type.STRING },
-              }
-            }
-          }
-        }
-      }
+    if (!process.env.API_KEY) {
+      console.warn("API Key missing. Returning fallback simulation script.");
+      return getFallbackScript(regionName);
     }
-  });
 
-  if (!response.text) throw new Error("Failed to generate script");
-  return JSON.parse(response.text) as SimulationScript;
+    const questionPrompt = specificQuestion
+      ? `The question to answer is: "${specificQuestion}"`
+      : `Create 1 Question about this brain region`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Generate a dialogue for a game level in the ${regionName}.
+      Characters:
+      - Synapse: Biological, calm, deep focus.
+      - Spark: Digital, energetic, tech focus.
+      
+      ${questionPrompt} and create a 3-part dialogue explaining it.
+      
+      Output JSON format:
+      {
+        "question": "The question title",
+        "exchanges": [
+          { "speaker": "Synapse", "text": "...", "imagePrompt": "Description for a 3D organic render..." },
+          { "speaker": "Spark", "text": "...", "imagePrompt": "Description for a 3D digital/tech render..." },
+          { "speaker": "Both", "text": "...", "imagePrompt": "Description of them combining..." }
+        ]
+      }`,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    if (!response.text) throw new Error("Failed to generate script");
+
+    // Clean up potential markdown code blocks
+    const cleanText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    console.log("Raw Gemini Response:", cleanText); // Debug logging
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanText);
+      console.log("Parsed JSON:", parsed); // Debug logging
+    } catch (e) {
+      console.error("JSON Parse Error:", e);
+      throw new Error("Failed to parse JSON response");
+    }
+
+    // Handle direct array response (fallback)
+    if (Array.isArray(parsed)) {
+      console.warn("Received array directly instead of object. Wrapping in default structure.");
+      return {
+        question: `Exploration of ${regionName}`,
+        exchanges: parsed
+      } as SimulationScript;
+    }
+
+    // Handle nested responses (e.g. { script: {...} } or { simulation: {...} })
+    if (!parsed.exchanges || !Array.isArray(parsed.exchanges)) {
+      if (parsed.script && Array.isArray(parsed.script.exchanges)) {
+        return parsed.script as SimulationScript;
+      }
+      if (parsed.simulation && Array.isArray(parsed.simulation.exchanges)) {
+        return parsed.simulation as SimulationScript;
+      }
+
+      const keys = Object.keys(parsed).join(", ");
+      console.error("Validation Failed. Keys:", keys);
+      throw new Error(`Invalid script structure: 'exchanges' array missing or invalid. Received keys: ${keys}`);
+    }
+
+    return parsed as SimulationScript;
+
+  } catch (error) {
+    console.error("Error generating simulation script:", error);
+    return getFallbackScript(regionName);
+  }
 };
+
+const getFallbackScript = (regionName: string): SimulationScript => ({
+  question: `Analysis of ${regionName}`,
+  exchanges: [
+    {
+      speaker: "Synapse",
+      text: `We are having trouble accessing the deep archives for ${regionName}. The neural pathways are currently blocked.`,
+      imagePrompt: "Fading neural connections, organic decay, mysterious"
+    },
+    {
+      speaker: "Spark",
+      text: "I'm detecting significant signal interference. I'll attempt to reroute the connection, but for now, we're on local backup.",
+      imagePrompt: "Glitching digital interface, static, repairing code"
+    }
+  ]
+});
 
 export const generateCharacterImage = async (prompt: string): Promise<string> => {
   const client = getAIClient();

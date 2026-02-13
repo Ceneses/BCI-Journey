@@ -36,14 +36,20 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
       try {
         setLoading(true);
         const data = await generateSimulationScript(world.region, question);
+
+        if (!data || !data.exchanges || !Array.isArray(data.exchanges)) {
+          throw new Error("Invalid simulation script format received");
+        }
+
         setScript(data);
         // Pre-load first step media
         if (data.exchanges.length > 0) {
           await loadStepMedia(data.exchanges[0], ctx);
         }
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        setError(err.message || "Failed to initialize simulation");
         setLoading(false);
       }
     };
@@ -102,6 +108,28 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
     setLiveMode(null);
     onExit(); // Or return to selection? Prompt says "End session by encouraging... to check Lesson Learned", implying end of flow.
   };
+
+  // State for error handling
+  const [error, setError] = useState<string | null>(null);
+
+  // ... (inside useEffect)
+  if (error) {
+    return (
+      <div className="absolute inset-0 bg-cyber-black z-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="mb-6">
+          <Activity className="w-16 h-16 text-red-500 animate-pulse mx-auto mb-4" />
+          <h2 className="text-2xl font-orbitron text-red-500 mb-2">SIMULATION ERROR</h2>
+          <p className="font-mono text-gray-400 max-w-md">{error}</p>
+        </div>
+        <button
+          onClick={onExit}
+          className="bg-red-900/20 border border-red-500 text-red-500 px-6 py-2 rounded font-orbitron hover:bg-red-500/20 transition-all"
+        >
+          ABORT SIMULATION
+        </button>
+      </div>
+    );
+  }
 
   if (loading || !script) {
     return (
