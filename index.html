@@ -1,47 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BCI Journey: Phase 1</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              orbitron: ['Orbitron', 'sans-serif'],
-              rajdhani: ['Rajdhani', 'sans-serif'],
-            },
-            colors: {
-              'cyber-black': '#050505',
-              'neon-blue': '#00f3ff',
-              'neon-pink': '#ff00ff',
-              'matrix-green': '#00ff41',
-              'electric-gold': '#ffd700',
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow 2s ease-in-out infinite alternate',
-            },
-            keyframes: {
-              glow: {
-                '0%': { boxShadow: '0 0 5px #00f3ff, 0 0 10px #00f3ff' },
-                '100%': { boxShadow: '0 0 20px #00f3ff, 0 0 30px #00f3ff' },
-              }
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BCI Journey: Phase 1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;600&display=swap"
+    rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            rajdhani: ['Rajdhani', 'sans-serif'],
           },
+          colors: {
+            'cyber-black': '#050505',
+            'neon-blue': '#00f3ff',
+            'neon-pink': '#ff00ff',
+            'matrix-green': '#00ff41',
+            'electric-gold': '#ffd700',
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+            'marquee': 'marquee 40s linear infinite',
+          },
+          keyframes: {
+            glow: {
+              '0%': { boxShadow: '0 0 5px #00f3ff, 0 0 10px #00f3ff' },
+              '100%': { boxShadow: '0 0 20px #00f3ff, 0 0 30px #00f3ff' },
+            },
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' },
+            }
+          }
         },
-      }
-    </script>
-    <style>
-      body { margin: 0; overflow: hidden; background-color: #050505; color: white; }
-      /* Custom Scrollbar for Cyber feel */
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #0a0a0a; }
-      ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 3px; }
-    </style>
+      },
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #050505;
+      color: white;
+    }
+
+    /* Custom Scrollbar for Cyber feel */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a0a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #00f3ff;
+      border-radius: 3px;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -59,8 +81,10 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

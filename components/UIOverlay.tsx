@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown } from 'lucide-react';
+import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown, Zap } from 'lucide-react';
 import { WorldData, GeneratedContent } from '../types';
 import { generateWorldBriefing } from '../services/geminiService';
 import { getTotalSomas } from '../utils/progressManager';
@@ -278,6 +278,39 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
               <TypewriterText text={selectedWorld.learningObjective} delay={20} />
             </div>
           </DataCard>
+
+          {/* Mission Protocol / Somas Guide */}
+          <div className="bg-gradient-to-r from-neon-blue/10 to-transparent p-5 rounded border-l-2 border-neon-blue relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Scan className="w-12 h-12 text-neon-blue" />
+            </div>
+
+            <h4 className="text-neon-blue font-orbitron text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Activity className="w-4 h-4" /> Mission Protocol
+            </h4>
+
+            <div className="space-y-3 font-mono text-[10px] md:text-xs text-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-black border border-gray-600 flex items-center justify-center text-gray-400">1</div>
+                <p><span className="text-white font-bold">CONNECT:</span> Listen to & Talk with Avatars.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-black border border-gray-600 flex items-center justify-center text-gray-400">2</div>
+                <p><span className="text-white font-bold">ANALYZE:</span> Read the Lesson Summary.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-black border border-neon-pink flex items-center justify-center text-neon-pink shadow-[0_0_10px_rgba(255,0,255,0.3)]">3</div>
+                <p><span className="text-neon-pink font-bold">ACTIVATE:</span> Pass the Neural Quiz.</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+              <span className="text-gray-400 uppercase text-[10px] tracking-wider">Reward Value:</span>
+              <span className="text-electric-gold font-bold font-orbitron text-sm md:text-base drop-shadow-[0_0_5px_rgba(255,215,0,0.5)] flex items-center gap-2">
+                <Zap className="w-3 h-3" /> 17,000,000 SOMAS
+              </span>
+            </div>
+          </div>
 
         </div>
 

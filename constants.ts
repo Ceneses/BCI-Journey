@@ -74,7 +74,7 @@ export const WORLDS: WorldData[] = [
     region: "Medical Nexus",
     description: "See how BCI is changing lives through rehabilitation and medical aid.",
     color: "#ff0000", // Alert Red
-    position: { x: 0, y: -3.5, z: -0.5 },
+    position: { x: 0, y: -3.5, z: 0 },
     connections: [6, 9],
     isLocked: true,
     learningObjective: "Apply BCI to solve human problems."
@@ -95,7 +95,7 @@ export const WORLDS: WorldData[] = [
     name: "Computer Magic (Math & Data)",
     region: "Data Core",
     description: "Contextualize BCI data with AI, machine learning, and mathematics.",
-    color: "#c59f22ff", // Pure Yellow
+    color: "#0c5ec2", // Pure Yellow
     position: { x: 0, y: 1.0, z: 0 }, // Center
     connections: [1, 7, 8],
     isLocked: true,
