@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { NeuralNode as NeuralNodeType } from '../types';
@@ -13,12 +13,6 @@ interface NeuralNodeProps {
 const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldColor }) => {
     const meshRef = useRef<Mesh>(null);
     const [hovered, setHovered] = useState(false);
-
-    useEffect(() => {
-        if (node.id < 3) {
-            console.log(`Node ${node.id} created at position:`, position, 'unlocked:', node.isUnlocked);
-        }
-    }, []);
 
     // Pulsing animation for active nodes
     useFrame((state) => {

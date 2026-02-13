@@ -198,7 +198,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
 
             {/* 3D Scene */}
             <div className="absolute inset-0 z-0">
-                <Canvas gl={{ antialias: true, alpha: false }} onCreated={() => console.log('Canvas created successfully')}>
+                <Canvas gl={{ antialias: true, alpha: false }}>
                     <color attach="background" args={['#050505']} />
                     <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={60} />
 

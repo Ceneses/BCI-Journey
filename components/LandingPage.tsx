@@ -23,7 +23,7 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex gap-6 text-sm font-rajdhani tracking-wide text-gray-400">
                <span>PHASE 1: BETA</span>
-               <span className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> SYSTEMS ONLINE</span>
+               <span className="flex items-center gap-2"><span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> SYSTEMS ONLINE</span>
             </div>
          </nav>
 

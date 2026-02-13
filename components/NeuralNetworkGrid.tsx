@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { NetworkStructure, NeuralNode as NeuralNodeType } from '../types';
 import { getNodePosition } from '../utils/questionLoader';
 import NeuralNode from './NeuralNode';
@@ -16,11 +16,6 @@ const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
     onNodeClick,
     worldColor
 }) => {
-    useEffect(() => {
-        console.log('NeuralNetworkGrid mounted with', network.nodes.length, 'nodes');
-        console.log('First 3 nodes:', network.nodes.slice(0, 3));
-    }, [network]);
-
     return (
         <group>
             {/* Synapse Connections */}

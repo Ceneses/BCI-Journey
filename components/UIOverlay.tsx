@@ -109,7 +109,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
               <div className="text-right hidden md:block">
                 <p className="font-orbitron text-white text-xs tracking-widest group-hover:text-neon-blue transition-colors">NEURAL CADET</p>
                 <p className="font-mono text-gray-500 text-[10px] flex items-center justify-end gap-1">
-                  STATUS: ONLINE <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  STATUS: ONLINE <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                 </p>
               </div>
 
