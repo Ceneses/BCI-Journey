@@ -200,7 +200,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
             <div className="absolute inset-0 z-0">
                 <Canvas gl={{ antialias: true, alpha: false }}>
                     <color attach="background" args={['#050505']} />
-                    <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={60} />
+                    <PerspectiveCamera makeDefault position={[6, 1, 30]} fov={60} />
 
                     <ambientLight intensity={0.3} />
                     <pointLight position={[10, 10, 10]} intensity={1} color="#00f3ff" />
@@ -212,13 +212,14 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                         worldColor={world?.color || '#00f3ff'}
                     />
 
-                    <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={0.5} />
+                    <Stars radius={150} depth={100} count={5000} factor={4} saturation={0} fade speed={0.5} />
 
                     <OrbitControls
                         enablePan={true}
-                        minDistance={10}
-                        maxDistance={40}
+                        minDistance={5}
+                        maxDistance={200}
                         dampingFactor={0.05}
+                        target={[0, 0, 0]}
                     />
 
                     <EffectComposer enableNormalPass={false}>

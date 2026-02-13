@@ -60,7 +60,7 @@ export interface NeuralNode {
 export interface NetworkStructure {
   nodes: NeuralNode[];
   totalColumns: 10;
-  columnSizes: number[]; // [2, 12, 12, 12, 12, 12, 12, 12, 12, 2]
+  columnSizes: number[]; // [1, 5, 10, 15, 19, 19, 15, 10, 5, 1]
 }
 
 export interface UserProgress {

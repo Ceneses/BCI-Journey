@@ -45,7 +45,8 @@ export async function loadWorldQuestions(worldId: number): Promise<WorldQuestion
  * Column distribution: [2, 12, 12, 12, 12, 12, 12, 12, 12, 2]
  */
 export function mapQuestionsToNetwork(questions: Question[]): NetworkStructure {
-    const columnSizes = [2, 12, 12, 12, 12, 12, 12, 12, 12, 2];
+    // New distribution: 1 input, 8 hidden layers (5,10,15,19,19,15,10,5), 1 output
+    const columnSizes = [1, 5, 10, 15, 19, 19, 15, 10, 5, 1];
     const nodes: NeuralNode[] = [];
 
     let questionIndex = 0;
@@ -87,19 +88,25 @@ export function mapQuestionsToNetwork(questions: Question[]): NetworkStructure {
  * Returns {x, y, z} coordinates for Three.js
  */
 export function getNodePosition(column: number, row: number, columnSize: number): { x: number; y: number; z: number } {
-    // Spacing between columns
-    const columnSpacing = 2.5;
+    const TUNNEL_RADIUS = 3; // Radius of the tunnel
+    const COLUMN_SPACING = 5; // Distance between rings along the tunnel
 
-    // Calculate x position (columns spread horizontally)
-    const x = (column - 5) * columnSpacing; // Center at column 5
+    // Z-axis: Progression down the tunnel
+    // We start at z=0 and go negative to creating depth "into" the screen
+    // Centering the tunnel around z=0 makes OrbitControls behave better
+    // Total length is approx 9 * 15 = 135. Let's shift so center is (0,0,0)
+    // Center column is roughly 5.5.
+    const centerOffset = 5.5 * COLUMN_SPACING;
+    const z = ((column * COLUMN_SPACING) - centerOffset) * -1;
 
-    // Calculate y position (rows spread vertically, centered)
-    const rowSpacing = 0.8;
-    const yOffset = ((columnSize - 1) * rowSpacing) / 2; // Center the column
-    const y = (row * rowSpacing) - yOffset;
+    // Ring distribution
+    const angleStep = (2 * Math.PI) / columnSize;
+    // Add a twist offset based on column to create a DNA-like spiral effect
+    const twist = column * 0.3;
+    const angle = (row * angleStep) + twist;
 
-    // Z position (slight depth variation for visual interest)
-    const z = 0;
+    const x = TUNNEL_RADIUS * Math.cos(angle);
+    const y = TUNNEL_RADIUS * Math.sin(angle);
 
     return { x, y, z };
 }

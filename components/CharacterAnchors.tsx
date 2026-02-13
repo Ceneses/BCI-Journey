@@ -18,8 +18,8 @@ const CharacterAnchors: React.FC = () => {
 
     return (
         <>
-            {/* Synapse - Input Layer (Left Side) */}
-            <group ref={synapseRef} position={[-14, -8, 0]}>
+            {/* Synapse - Input Layer (Left Side/Start) */}
+            <group ref={synapseRef} position={[0, 0, 25]}>
                 {/* Character orb */}
                 <mesh>
                     <sphereGeometry args={[1.2, 32, 32]} />
@@ -47,8 +47,8 @@ const CharacterAnchors: React.FC = () => {
                 </mesh>
             </group>
 
-            {/* Spark - Hidden/Output Layers (Right Side) */}
-            <group ref={sparkRef} position={[14, -8, 0]}>
+            {/* Spark - Hidden/Output Layers (Right Side/End) */}
+            <group ref={sparkRef} position={[0, 0, -25]}>
                 {/* Character orb */}
                 <mesh>
                     <sphereGeometry args={[1.2, 32, 32]} />
