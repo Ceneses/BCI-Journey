@@ -1,0 +1,406 @@
+{
+    "worldId": 7,
+    "worldTitle": "Helping People",
+    "questions": [
+        {
+            "id": 1,
+            "question": "What is \"Clinical BCI\"?"
+        },
+        {
+            "id": 2,
+            "question": "What is \"Rehabilitation\"?"
+        },
+        {
+            "id": 3,
+            "question": "What is \"Assistive Technology\"?"
+        },
+        {
+            "id": 4,
+            "question": "What is \"ALS\"?"
+        },
+        {
+            "id": 5,
+            "question": "What is \"Locked-In Syndrome\"?"
+        },
+        {
+            "id": 6,
+            "question": "Can BCI be a lifeline?"
+        },
+        {
+            "id": 7,
+            "question": "What is \"Spinal Cord Injury\" (SCI)?"
+        },
+        {
+            "id": 8,
+            "question": "What is \"Paraplegia\"?"
+        },
+        {
+            "id": 9,
+            "question": "What is \"Quadriplegia\"?"
+        },
+        {
+            "id": 10,
+            "question": "What is \"Tetraplegia\"?"
+        },
+        {
+            "id": 11,
+            "question": "Can BCI move a wheelchair?"
+        },
+        {
+            "id": 12,
+            "question": "What is \"Stroke\"?"
+        },
+        {
+            "id": 13,
+            "question": "What is \"Aphasia\"?"
+        },
+        {
+            "id": 14,
+            "question": "What is \"Hemiplegia\"?"
+        },
+        {
+            "id": 15,
+            "question": "Can BCI help the brain \"rewire\" after stroke?"
+        },
+        {
+            "id": 16,
+            "question": "What is \"Motor Imagery Therapy\"?"
+        },
+        {
+            "id": 17,
+            "question": "What is \"Cerebral Palsy\"?"
+        },
+        {
+            "id": 18,
+            "question": "What is \"Muscular Dystrophy\"?"
+        },
+        {
+            "id": 19,
+            "question": "What is \"Multiple Sclerosis\" (MS)?"
+        },
+        {
+            "id": 20,
+            "question": "What is \"Parkinson's Disease\"?"
+        },
+        {
+            "id": 21,
+            "question": "What is \"Tremor\"?"
+        },
+        {
+            "id": 22,
+            "question": "Can BCI detect tremors?"
+        },
+        {
+            "id": 23,
+            "question": "What is \"DBS\" (Deep Brain Stimulation)?"
+        },
+        {
+            "id": 24,
+            "question": "Is it a \"Brain Pacemaker\"?"
+        },
+        {
+            "id": 25,
+            "question": "What is \"Alzheimer's\"?"
+        },
+        {
+            "id": 26,
+            "question": "What is \"Dementia\"?"
+        },
+        {
+            "id": 27,
+            "question": "Can BCI help with memory?"
+        },
+        {
+            "id": 28,
+            "question": "What is \"Epilepsy\"?"
+        },
+        {
+            "id": 29,
+            "question": "What is a \"Seizure\"?"
+        },
+        {
+            "id": 30,
+            "question": "Can BCI predict a seizure?"
+        },
+        {
+            "id": 31,
+            "question": "What is \"Vagus Nerve Stimulation\" (VNS)?"
+        },
+        {
+            "id": 32,
+            "question": "What is \"RNS\" (Responsive Neurostimulation)?"
+        },
+        {
+            "id": 33,
+            "question": "What is \"Autism\"?"
+        },
+        {
+            "id": 34,
+            "question": "What is \"Neurofeedback\"?"
+        },
+        {
+            "id": 35,
+            "question": "Can you play a game to train your brain?"
+        },
+        {
+            "id": 36,
+            "question": "What is \"ADHD\"?"
+        },
+        {
+            "id": 37,
+            "question": "Can BCI help with focus?"
+        },
+        {
+            "id": 38,
+            "question": "What is \"Anxiety\"?"
+        },
+        {
+            "id": 39,
+            "question": "Can BCI help with relaxation?"
+        },
+        {
+            "id": 40,
+            "question": "What is \"PTSD\"?"
+        },
+        {
+            "id": 41,
+            "question": "What is \"Depression\"?"
+        },
+        {
+            "id": 42,
+            "question": "Can BCI help with mood?"
+        },
+        {
+            "id": 43,
+            "question": "What is \"Chronic Pain\"?"
+        },
+        {
+            "id": 44,
+            "question": "Can BCI \"block\" pain?"
+        },
+        {
+            "id": 45,
+            "question": "What is \"Phantom Limb\"?"
+        },
+        {
+            "id": 46,
+            "question": "Does the brain still feel a missing arm?"
+        },
+        {
+            "id": 47,
+            "question": "What is \"Mirror Therapy\"?"
+        },
+        {
+            "id": 48,
+            "question": "Can BCI help phantom pain?"
+        },
+        {
+            "id": 49,
+            "question": "What is \"Brain-to-Text\"?"
+        },
+        {
+            "id": 50,
+            "question": "Can BCI help someone talk through a computer?"
+        },
+        {
+            "id": 51,
+            "question": "What is \"Speech Synthesis\"?"
+        },
+        {
+            "id": 52,
+            "question": "Can a BCI give someone their voice back?"
+        },
+        {
+            "id": 53,
+            "question": "What is \"Stephen Hawking's\" computer?"
+        },
+        {
+            "id": 54,
+            "question": "Did he use a BCI?"
+        },
+        {
+            "id": 55,
+            "question": "Would a BCI have been faster?"
+        },
+        {
+            "id": 56,
+            "question": "What is \"Communication Rate\"?"
+        },
+        {
+            "id": 57,
+            "question": "What is \"Accuracy\" in medical BCI?"
+        },
+        {
+            "id": 58,
+            "question": "What is \"Reliability\"?"
+        },
+        {
+            "id": 59,
+            "question": "What is \"Stability\"?"
+        },
+        {
+            "id": 60,
+            "question": "Can a BCI work for years?"
+        },
+        {
+            "id": 61,
+            "question": "What is \"Biocompatibility\"?"
+        },
+        {
+            "id": 62,
+            "question": "Does the body fight the implant?"
+        },
+        {
+            "id": 63,
+            "question": "What is \"Gliosis\"?"
+        },
+        {
+            "id": 64,
+            "question": "What is \"Immune Response\"?"
+        },
+        {
+            "id": 65,
+            "question": "What is \"Wireless Charging\" for brains?"
+        },
+        {
+            "id": 66,
+            "question": "What is \"Neural Bypass\"?"
+        },
+        {
+            "id": 67,
+            "question": "What is \"Intracortical\"?"
+        },
+        {
+            "id": 68,
+            "question": "What is \"Epicortical\"?"
+        },
+        {
+            "id": 69,
+            "question": "What is \"User Centered Design\"?"
+        },
+        {
+            "id": 70,
+            "question": "Should we ask patients what they want?"
+        },
+        {
+            "id": 71,
+            "question": "What is \"Quality of Life\"?"
+        },
+        {
+            "id": 72,
+            "question": "What is \"Independence\"?"
+        },
+        {
+            "id": 73,
+            "question": "What is \"Caregiver Burden\"?"
+        },
+        {
+            "id": 74,
+            "question": "Can BCI help caregivers?"
+        },
+        {
+            "id": 75,
+            "question": "What is \"Remote Monitoring\"?"
+        },
+        {
+            "id": 76,
+            "question": "What is \"Telehospital\"?"
+        },
+        {
+            "id": 77,
+            "question": "What is \"Brain Computer Music Interface\"?"
+        },
+        {
+            "id": 78,
+            "question": "Can making music help the brain?"
+        },
+        {
+            "id": 79,
+            "question": "What is \"Occupational Therapy\"?"
+        },
+        {
+            "id": 80,
+            "question": "What is \"Physical Therapy\"?"
+        },
+        {
+            "id": 81,
+            "question": "What is \"Robotic Rehabilitation\"?"
+        },
+        {
+            "id": 82,
+            "question": "What is \"Virtual Reality Therapy\"?"
+        },
+        {
+            "id": 83,
+            "question": "What is \"Biofeedback\"?"
+        },
+        {
+            "id": 84,
+            "question": "Can you see your heart rate?"
+        },
+        {
+            "id": 85,
+            "question": "Can you see your brainwaves?"
+        },
+        {
+            "id": 86,
+            "question": "What is \"Alpha-Theta training\"?"
+        },
+        {
+            "id": 87,
+            "question": "What is \"SMR training\"?"
+        },
+        {
+            "id": 88,
+            "question": "What is \"Beta training\"?"
+        },
+        {
+            "id": 89,
+            "question": "What is \"Gamma training\"?"
+        },
+        {
+            "id": 90,
+            "question": "What is \"Peak Performance\"?"
+        },
+        {
+            "id": 91,
+            "question": "Can athletes use BCI?"
+        },
+        {
+            "id": 92,
+            "question": "What is \"Quiet Eye\"?"
+        },
+        {
+            "id": 93,
+            "question": "What is \"Flow State\"?"
+        },
+        {
+            "id": 94,
+            "question": "Can BCI detect \"Flow\"?"
+        },
+        {
+            "id": 95,
+            "question": "What is \"Meditation\"?"
+        },
+        {
+            "id": 96,
+            "question": "Can BCI help you meditate?"
+        },
+        {
+            "id": 97,
+            "question": "What is \"Mindfulness\"?"
+        },
+        {
+            "id": 98,
+            "question": "What is \"Yoga\" for the brain?"
+        },
+        {
+            "id": 99,
+            "question": "Can BCI help with \"Sleep Apnea\"?"
+        },
+        {
+            "id": 100,
+            "question": "Can BCI help you dream better?"
+        }
+    ]
+}
