@@ -19,7 +19,7 @@ export const generateWorldBriefing = async (
 ): Promise<GeneratedContent> => {
   try {
     const client = getAIClient();
-    
+
     if (!process.env.API_KEY) {
       return {
         title: `Accessing ${regionName}...`,
@@ -54,7 +54,7 @@ export const generateWorldBriefing = async (
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    
+
     return JSON.parse(text) as GeneratedContent;
 
   } catch (error) {
@@ -69,8 +69,13 @@ export const generateWorldBriefing = async (
 
 // --- Phase 2: Simulation Content ---
 
-export const generateSimulationScript = async (regionName: string): Promise<SimulationScript> => {
+export const generateSimulationScript = async (regionName: string, specificQuestion?: string): Promise<SimulationScript> => {
   const client = getAIClient();
+
+  const questionPrompt = specificQuestion
+    ? `The question to answer is: "${specificQuestion}"`
+    : `Create 1 Question about this brain region`;
+
   const response = await client.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Generate a dialogue for a game level in the ${regionName}.
@@ -78,7 +83,7 @@ export const generateSimulationScript = async (regionName: string): Promise<Simu
     - Synapse: Biological, calm, deep focus.
     - Spark: Digital, energetic, tech focus.
     
-    Create 1 Question about this brain region and a 3-part dialogue explaining it.
+    ${questionPrompt} and create a 3-part dialogue explaining it.
     
     Output JSON format:
     {
@@ -137,10 +142,10 @@ export const generateCharacterImage = async (prompt: string): Promise<string> =>
 
 export const generateCharacterSpeech = async (text: string, speaker: Speaker): Promise<string> => {
   const client = getAIClient();
-  
+
   // Synapse = Kore (Calm/Deep), Spark = Fenrir (Energetic/Fast)
   const voiceName = speaker === 'Synapse' ? 'Kore' : 'Fenrir';
-  
+
   const response = await client.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text: text }] }],

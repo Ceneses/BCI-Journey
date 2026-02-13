@@ -1,34 +1,81 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# BCI Journey - Brain-Computer Interface Learning Platform
 
-# Run and deploy your AI Studio app
+Welcome to the **BCI Journey** application! This is a gamified, 3D educational platform designed to help users explore the human brain, understand Brain-Computer Interfaces (BCI), and interact with AI-powered neural avatars.
 
-This contains everything you need to run your app locally.
+## 🌟 Overview
 
-View your app in AI Studio: https://ai.studio/apps/drive/1xjQK28uhAJ7chVbbhQIRllHTk2UmMbPm
+The BCI Journey app combines immersive 3D visualizations with interactive learning modules. Users navigate through different regions of the brain ("Worlds"), unlock neural nodes, and engage in meaningful dialogues with virtual guides: **Synapse** (the biological expert) and **Spark** (the technological expert).
 
-## Run Locally
+## 🚀 User Experience (UX) Journey
 
-**Prerequisites:**  Node.js
+1.  **Landing Page (`/`)**:
+    *   The entry point to the application.
+    *   Introduces the "Neuro-Link Interface" and the concept of unlocking the mind.
+    *   **Action**: Click "INITIALIZE JOURNEY" to enter the 3D brain map.
 
+2.  **BCI Journey Map (`/journey`)**:
+    *   A global view of the human brain visualized as a particle cloud.
+    *   **Interaction**:
+        *   Rotate and zoom around the 3D brain model.
+        *   Click on interactive **World Nodes** (glowing regions) to select them.
+        *   View details about the selected region via the **UI Overlay**.
+    *   **Action**: Enter a specific world to start the deeper simulation.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+3.  **Neural Navigator (`/journey/:worldName`)**:
+    *   A microscopic view of the selected brain region, represented as a neural network.
+    *   **Gamification**:
+        *   **Locked Nodes** (Grey): Prerequisites not yet met.
+        *   **Unlocked Nodes** (Pulsing): Ready to explore.
+        *   **Completed Nodes** (Pink): Questions already answered.
+    *   **Interaction**: Click on unlocked nodes to reveal a learning question.
+    *   **Learning Modes**:
+        *   **Listen**: Watch a dialogue between Synapse and Spark explaining the concept.
+        *   **Talk**: Engage in a direct conversation with the avatars.
 
-2. Set up your environment variables:
-   - Copy `.env.example` to `.env`
-   - Add your Gemini API key to `.env`:
-     ```
-     VITE_GEMINI_API_KEY=your_api_key_here
-     ```
-   - Get your API key from: https://aistudio.google.com/apikey
+4.  **Simulation Mode**:
+    *   The core interactive learning session.
+    *   Features real-time dialogue and education on specific neuroscience or BCI topics.
 
-3. Run the app:
-   ```bash
-   npm run dev
-   ```
+## 📂 Component Guide
 
-4. Open your browser and navigate to `http://localhost:3000` (or the port shown in the terminal)
+### Core Components (`src/components`)
+
+| Component | Description |
+| :--- | :--- |
+| **`App.tsx`** | The main application container that handles routing between the Landing Page, Journey Map, and Neural Navigator. |
+| **`LandingPage.tsx`** | The hero screen featuring a cyber-organic aesthetic, introduction text, and the main "Initialize Journey" call-to-action. |
+| **`BCIJourney.tsx`** | The main 3D map view. It sets up the Three.js `Canvas`, lights, and post-processing effects (Bloom, Vignette). It manages the state for the selected world. |
+| **`NeuralNavigator.tsx`** | The level-specific view. It loads questions, renders the local neural network grid, handles node unlocking logic, and manages the tutorial overlay. |
+| **`SimulationMode.tsx`** | Handles the interactive chat/dialogue session when a user selects "Listen" or "Talk" on a node. View of the dialogue is likely handled here. |
+| **`UIOverlay.tsx`** | The Heads-Up Display (HUD) for the Journey Map. It shows information about the selected world and provides the "Enter Simulation" button. |
+| **`BrainParticles.tsx`** | Renders the background 3D particle system that gives the brain its "cyber-organic" look. |
+| **`WorldNode.tsx`** | Represents a selectable brain region on the global map. Handles hover and click events for the regions. |
+| **`NeuralNode.tsx`** | Represents a single question/topic in the `NeuralNavigator`. Its appearance changes based on its state (locked, active, completed). |
+| **`NeuralNetworkGrid.tsx`** | Arranges `NeuralNode` components into a structured 3D grid layout. |
+| **`NeuralPathways.tsx`** | Visualizes the connections (axons/dendrites) between nodes in the global map. |
+| **`SynapseConnections.tsx`** | Visualizes interactions between individual nodes in the specific view. |
+| **`LoadingTeaser.tsx`** | A cinematic loading screen displayed before entering the specific neural network view. |
+| **`CharacterAnchors.tsx`** | (Internal) Likely used to position the 3D avatars or related elements in the scene. |
+
+### Pages (`src/pages`)
+
+*   **`NeuralNavigatorPage.tsx`**: A simple wrapper component that extracts the `worldName` from the URL parameters and renders the `NeuralNavigator` component with the correct ID derived from the name.
+
+## 🛠 Tech Stack
+
+*   **Frontend Framework**: React
+*   **Build Tool**: Vite
+*   **3D Rendering**: React Three Fiber (Three.js)
+*   **Styling**: Tailwind CSS
+*   **Icons**: Lucide React
+*   **Routing**: React Router DOM
+
+## 🎨 Design System
+
+The app follows a "Cyber-Organic" design language:
+*   **Colors**: Neon Blue (`#00f3ff`), Neon Pink (`#ff00ff`), Electric Gold (`#ffd700`), and Deep Cyber Black backgrounds.
+*   **Typography**: `Orbitron` for headers (futuristic) and `Rajdhani` for UI text (technical).
+*   **Visuals**: Glowing particles, bloom effects, and dark mode aesthetics.
+
+---
+*Documentation generated by Google DeepMind Agent*
