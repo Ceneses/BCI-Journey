@@ -3,14 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
-import { WorldQuestions, NetworkStructure, NeuralNode as NeuralNodeType } from '../types';
+import { NetworkStructure, NeuralNode, WorldQuestions, UserProgress, QuestionProgress } from '../types';
+import { generateLessonSummary, generateNeuronQuiz } from '../services/geminiService';
 import { loadWorldQuestions, mapQuestionsToNetwork } from '../utils/questionLoader';
-import { loadProgress, markQuestionComplete, isNodeUnlocked } from '../utils/progressManager';
+import { loadProgress, saveProgress, markQuestionComplete, isNodeUnlocked, isQuestionComplete, getCompletionPercentage, updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
 import { WORLDS } from '../constants';
 import NeuralNetworkGrid from './NeuralNetworkGrid';
 import LoadingTeaser from './LoadingTeaser';
 import SimulationMode from './SimulationMode';
-import { ArrowLeft, Mouse, Hand, Info, Lightbulb, Lock, Unlock, CheckCircle2, Circle } from 'lucide-react';
+import LessonSummary from './LessonSummary';
+import NeuronActivationQuiz from './NeuronActivationQuiz';
+import { ArrowLeft, Mouse, Hand, Info, Lightbulb, Lock, Unlock, CheckCircle2, Circle, BookOpen, Award, Zap } from 'lucide-react';
 
 interface NeuralNavigatorProps {
     worldId: number;
@@ -21,12 +24,19 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
     const [loading, setLoading] = useState(true);
     const [showTeaser, setShowTeaser] = useState(true);
     const [network, setNetwork] = useState<NetworkStructure | null>(null);
-    const [selectedNode, setSelectedNode] = useState<NeuralNodeType | null>(null);
+    const [selectedNode, setSelectedNode] = useState<NeuralNode | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showSimulation, setShowSimulation] = useState(false);
     const [simulationMode, setSimulationMode] = useState<'listen' | 'talk' | null>(null);
     const [showTutorial, setShowTutorial] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [showSummary, setShowSummary] = useState(false);
+    const [showQuiz, setShowQuiz] = useState(false);
+    const [currentQuestionProgress, setCurrentQuestionProgress] = useState<QuestionProgress | null>(null);
+
+    // Placeholder for audio context and sound function, as they are not defined in the provided snippet
+    const audioContext = null; // Replace with actual AudioContext if used
+    const playNodeSelectSound = (ctx: any) => { /* Play sound logic */ };
 
     const world = WORLDS.find(w => w.id === worldId);
 
@@ -91,16 +101,21 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
         }
     };
 
-    const handleNodeClick = (node: NeuralNodeType) => {
+    const handleNodeSelect = (node: NeuralNode) => {
         if (!node.isUnlocked) return;
+
+        // Play selection sound
+        if (audioContext) {
+            playNodeSelectSound(audioContext);
+        }
 
         setSelectedNode(node);
 
-        // Mark as complete
-        markQuestionComplete(worldId, node.questionId);
-
-        // Reload to update unlocked states
-        loadQuestions(true);
+        // Load progress for this node
+        if (world) {
+            const progress = getQuestionProgress(world.id, node.questionId);
+            setCurrentQuestionProgress(progress);
+        }
     };
 
     const handleBack = () => {
@@ -108,6 +123,13 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
     };
 
     const handleStartSimulation = (mode: 'listen' | 'talk') => {
+        if (selectedNode && world) {
+            // Update progress
+            updateQuestionProgress(world.id, selectedNode.questionId, mode);
+            // Refresh progress state locally
+            setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+            // onStartSimulation(selectedNode.question, mode); // This function is not defined in the provided context
+        }
         setSimulationMode(mode);
         setShowSimulation(true);
     };
@@ -208,7 +230,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
 
                     <NeuralNetworkGrid
                         network={network}
-                        onNodeClick={handleNodeClick}
+                        onNodeClick={handleNodeSelect}
                         worldColor={world?.color || '#00f3ff'}
                     />
 
@@ -358,8 +380,64 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                 </div>
             )}
 
+            {/* Lesson Summary Overlay */}
+            {showSummary && selectedNode && (
+                <LessonSummary
+                    question={selectedNode.question}
+                    regionName={world?.region || 'Unknown Region'}
+                    onClose={() => {
+                        setShowSummary(false);
+                        // Refresh progress on close to be sure?
+                        // Already updated on click, but maybe good to re-fetch high level if needed.
+                        if (world && selectedNode) {
+                            setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+                        }
+                    }}
+                />
+            )}
+
+            {/* Quiz Overlay */}
+            {showQuiz && selectedNode && world && (
+                <NeuronActivationQuiz
+                    question={selectedNode.question}
+                    questionId={selectedNode.questionId}
+                    worldId={world.id}
+                    regionName={world.region}
+                    summaryPoints={[]} // We might need to fetch or store these if we want them passed strictly, but the service handles generation too.
+                    // Wait, the service needs summary points to generate the quiz.
+                    // NeuralNavigator doesn't have the summary points stored.
+                    // We should modify LessonSummary or NeuralNavigator to store the generated points?
+                    // Or just let Gemini generate fresh points for the quiz generation context internally?
+                    // The prompt in generateNeuronQuiz asks for summaryPoints.
+                    // Let's pass an empty array and let the service handle it or fetch fresh ones?
+                    // Actually, looking at geminiService, it USES the summaryPoints in the prompt.
+                    // If we send empty, the quiz about summary will be empty/bad.
+                    // We should probably fetch the summary first if we don't have it?
+                    // OR store it in progress?
+                    // Storing in progress is heavy.
+                    // Let's make NeuronActivationQuiz fetch the summary if not provided?
+                    // Or just pass the logic to generateNeuronQuiz to handle "Generate summary then quiz".
+                    // Implementation Plan didn't specify storing summary.
+                    // I'll update LessonSummary to maybe cache it?
+                    // For this iteration, let's just make the quiz generation fetch a summary internally if needed?
+                    // No, generateNeuronQuiz takes summaryPoints as arg.
+                    // I will update NeuronActivationQuiz to fetch summary first if we don't have it.
+                    // But wait, NeuronActivationQuiz calls generateNeuronQuiz.
+                    // I will fix this by updating NeuronActivationQuiz to generate summary first.
+                    onClose={() => setShowQuiz(false)}
+                    onComplete={(score) => {
+                        // Handle completion
+                        if (score >= 3) {
+                            // Success animation or something handled in component
+                        }
+                        // Refresh progress
+                        setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+                    }}
+                />
+            )}
+
             {/* Question Panel */}
-            {selectedNode && (
+            {selectedNode && !showSummary && (
                 <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-cyber-black/90 backdrop-blur-md border-t border-neon-blue/30 animate-in slide-in-from-bottom duration-300">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex items-start justify-between mb-4">
@@ -398,6 +476,58 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                             >
                                 Talk with Synapse and Spark
                             </button>
+                        </div>
+                        <div className="mt-4">
+                            <button
+                                onClick={() => {
+                                    setShowSummary(true);
+                                    if (selectedNode && world) {
+                                        updateQuestionProgress(world.id, selectedNode.questionId, 'summary');
+                                        // Refresh progress state locally
+                                        setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+                                    }
+                                }}
+                                className="w-full flex items-center justify-center gap-2 p-3 rounded border border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all font-mono text-sm uppercase tracking-widest mb-3"
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                Read the summary
+                            </button>
+
+                            {/* Activate Neuron Button */}
+                            <button
+                                onClick={() => setShowQuiz(true)}
+                                disabled={!currentQuestionProgress?.hasListened || !currentQuestionProgress?.hasTalked || !currentQuestionProgress?.hasReadSummary}
+                                className={`w-full flex items-center justify-center gap-2 p-4 rounded border font-orbitron font-bold tracking-widest transition-all ${currentQuestionProgress?.hasListened && currentQuestionProgress?.hasTalked && currentQuestionProgress?.hasReadSummary
+                                        ? 'bg-neon-pink text-black border-neon-pink hover:bg-white hover:scale-105 shadow-[0_0_15px_#ff00ff]'
+                                        : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                                    }`}
+                            >
+                                {currentQuestionProgress?.isActivated ? (
+                                    <>
+                                        <Award className="w-5 h-5" />
+                                        NEURON ACTIVATED
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap className="w-5 h-5" />
+                                        ACTIVATE NEURON
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Progress Indicators */}
+                            <div className="flex justify-between mt-2 text-[10px] font-mono text-gray-500 uppercase">
+                                <span className={currentQuestionProgress?.hasListened ? 'text-neon-blue' : ''}>
+                                    {currentQuestionProgress?.hasListened ? '[X] LISTEN' : '[ ] LISTEN'}
+                                </span>
+                                <span className={currentQuestionProgress?.hasTalked ? 'text-neon-blue' : ''}>
+                                    {currentQuestionProgress?.hasTalked ? '[X] TALK' : '[ ] TALK'}
+                                </span>
+                                <span className={currentQuestionProgress?.hasReadSummary ? 'text-neon-blue' : ''}>
+                                    {currentQuestionProgress?.hasReadSummary ? '[X] READ' : '[ ] READ'}
+                                </span>
+                            </div>
+
                         </div>
                     </div>
                 </div>

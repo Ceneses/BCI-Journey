@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { WorldData, GeneratedContent } from '../types';
 import { generateWorldBriefing } from '../services/geminiService';
+import { getTotalSomas } from '../utils/progressManager';
 
 interface UIOverlayProps {
   selectedWorld: WorldData | null;
@@ -52,6 +53,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
   const navigate = useNavigate();
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [loading, setLoading] = useState(false);
+  const [totalSomas, setTotalSomas] = useState(0);
 
   // Profile Dropdown State
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -67,7 +69,28 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
           setLoading(false);
         });
     }
-  }, [selectedWorld]);
+
+    // Load Total Somas (from all worlds or just accumulated in general?)
+    // currently stored per world in progressManager... 
+    // Wait, progressManager `loadProgress` takes `worldId`.
+    // The requirement implies a global XP/Points system. 
+    // But `UserProgress` structure is tied to `worldId`. 
+    // For now, let's sum up somas from all worlds or if `selectedWorld` is null, maybe just show a placeholder?
+    // Actually, `UserProgress` in `types.ts` has `totalSomas`.
+    // `progressManager` saves per `worldId`. 
+    // Let's assume for now we just show the Somas from the currently selected world OR if none selected, maybe loop through all 10 worlds to sum?
+    // A better approach for the future would be a global user profile.
+    // BUT, for this task, I'll calculate the sum of Somas across all WORLDS.
+
+    // Let's just sum all worlds for the global display.
+    let sum = 0;
+    // Assuming WORLDS import is available or we can just iterate known IDs 1-10.
+    for (let i = 1; i <= 10; i++) {
+      sum += getTotalSomas(i);
+    }
+    setTotalSomas(sum);
+
+  }, [selectedWorld, isProfileOpen]); // Re-fetch when profile opens or world changes
 
   // Handle outside click for profile dropdown
   useEffect(() => {
@@ -153,7 +176,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
                     <div className="bg-gradient-to-r from-neon-blue to-neon-pink h-full w-[35%]"></div>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-neon-blue">XP: 350</span>
+                    <span className="text-neon-blue">SOMAS: {totalSomas.toLocaleString()}</span>
                     <span className="text-gray-500">NEXT: LEVEL 2</span>
                   </div>
                 </div>

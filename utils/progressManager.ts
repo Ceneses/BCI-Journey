@@ -21,6 +21,8 @@ export function loadProgress(worldId: number): UserProgress {
     return {
         worldId,
         completedQuestions: [],
+        questionProgress: {},
+        totalSomas: 0,
         lastUpdated: new Date().toISOString()
     };
 }
@@ -40,10 +42,67 @@ export function saveProgress(progress: UserProgress): void {
 export function markQuestionComplete(worldId: number, questionId: number): void {
     const progress = loadProgress(worldId);
 
+    // Legacy support
     if (!progress.completedQuestions.includes(questionId)) {
         progress.completedQuestions.push(questionId);
         saveProgress(progress);
     }
+}
+
+/**
+ * Update specific progress field for a question
+ */
+export function updateQuestionProgress(
+    worldId: number,
+    questionId: number,
+    field: 'listen' | 'talk' | 'summary' | 'activate',
+    score?: number
+): void {
+    const progress = loadProgress(worldId);
+
+    // Initialize if missing
+    if (!progress.questionProgress) {
+        progress.questionProgress = {};
+    }
+
+    if (!progress.questionProgress[questionId]) {
+        progress.questionProgress[questionId] = {
+            questionId,
+            hasListened: false,
+            hasTalked: false,
+            hasReadSummary: false,
+            isActivated: false
+        };
+    }
+
+    const qp = progress.questionProgress[questionId];
+
+    if (field === 'listen') qp.hasListened = true;
+    if (field === 'talk') qp.hasTalked = true;
+    if (field === 'summary') qp.hasReadSummary = true;
+    if (field === 'activate') {
+        qp.isActivated = true;
+        if (score !== undefined) qp.quizScore = score;
+
+        // Also mark as complete for legacy/unlocking purposes if passed
+        markQuestionComplete(worldId, questionId);
+    }
+
+    saveProgress(progress);
+}
+
+/**
+ * Get progress for a specific question
+ */
+export function getQuestionProgress(worldId: number, questionId: number) {
+    const progress = loadProgress(worldId);
+    return progress.questionProgress?.[questionId] || {
+        questionId,
+        hasListened: false,
+        hasTalked: false,
+        hasReadSummary: false,
+        isActivated: false
+    };
 }
 
 /**
@@ -88,4 +147,23 @@ export function getCompletionPercentage(worldId: number): number {
 export function resetProgress(worldId: number): void {
     const key = `${STORAGE_KEY_PREFIX}${worldId}`;
     localStorage.removeItem(key);
+}
+
+/**
+ * Add Somas to the user's total
+ */
+export function addSomas(worldId: number, amount: number): void {
+    const progress = loadProgress(worldId);
+    if (!progress.totalSomas) progress.totalSomas = 0;
+
+    progress.totalSomas += amount;
+    saveProgress(progress);
+}
+
+/**
+ * Get total Somas
+ */
+export function getTotalSomas(worldId: number): number {
+    const progress = loadProgress(worldId);
+    return progress.totalSomas || 0;
 }

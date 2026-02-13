@@ -2,26 +2,30 @@ import React, { useEffect, useState, useRef } from 'react';
 import { WorldData, SimulationScript } from '../types';
 import { generateSimulationScript, generateCharacterImage, generateCharacterSpeech } from '../services/geminiService';
 import { decodeAudioData, playAudioBuffer } from '../utils/audioUtils';
-import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users } from 'lucide-react';
+import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users, BookOpen } from 'lucide-react';
 import LiveSession from './LiveSession';
+import LessonSummary from './LessonSummary';
+import { updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
+
+type Phase = 'script' | 'selection' | 'live';
+type LiveMode = 'Synapse' | 'Spark' | null;
 
 interface SimulationModeProps {
   world: WorldData;
   onExit: () => void;
   question?: string; // Optional specific question to focus on
+  questionId?: number; // Need this for progress tracking
   initialMode?: 'listen' | 'talk'; // Optional initial mode
 }
 
-type Phase = 'script' | 'selection' | 'live';
-type LiveMode = 'Synapse' | 'Spark' | null;
-
-const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question, initialMode }) => {
+const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question, questionId, initialMode }) => {
   const [script, setScript] = useState<SimulationScript | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generatingMedia, setGeneratingMedia] = useState(false);
   const [phase, setPhase] = useState<Phase>(initialMode === 'talk' ? 'selection' : 'script');
   const [liveMode, setLiveMode] = useState<LiveMode>(null);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Media States
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -95,6 +99,9 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
       }
     } else {
       // End of sequence, transition to Live Selection
+      if (initialMode === 'listen' && questionId) {
+        updateQuestionProgress(world.id, questionId, 'listen');
+      }
       setPhase('selection');
     }
   };
@@ -105,8 +112,21 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
   };
 
   const endLiveSession = () => {
+    if (questionId) {
+      updateQuestionProgress(world.id, questionId, 'talk');
+    }
     setLiveMode(null);
     onExit(); // Or return to selection? Prompt says "End session by encouraging... to check Lesson Learned", implying end of flow.
+  };
+
+  const handleLiveSessionReadSummary = () => {
+    // Mark talk as complete since they finished the session to get here
+    if (questionId) {
+      updateQuestionProgress(world.id, questionId, 'talk');
+    }
+    setLiveMode(null);
+    setPhase('selection');
+    setShowSummary(true);
   };
 
   // State for error handling
@@ -143,7 +163,23 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
 
   // --- Phase 3: Live Session ---
   if (phase === 'live' && liveMode) {
-    return <LiveSession mode={liveMode} onClose={endLiveSession} />;
+    return <LiveSession mode={liveMode} onClose={endLiveSession} onReadSummary={handleLiveSessionReadSummary} />;
+  }
+
+  // --- Summary Overlay ---
+  if (showSummary && script) {
+    return (
+      <LessonSummary
+        question={script.question}
+        regionName={world.region}
+        onClose={() => {
+          setShowSummary(false);
+          if (questionId) {
+            updateQuestionProgress(world.id, questionId, 'summary');
+          }
+        }}
+      />
+    );
   }
 
   // --- Phase 2.5: Character Selection ---
@@ -184,7 +220,15 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         <button onClick={onExit} className="mt-16 text-gray-500 hover:text-white font-mono text-xs uppercase tracking-widest hover:underline">
           Skip Voice Link & Return to Map
         </button>
-      </div>
+
+        <button
+          onClick={() => setShowSummary(true)}
+          className="mt-8 flex items-center gap-2 px-6 py-3 bg-purple-500/20 border border-purple-500 text-purple-400 font-rajdhani hover:bg-purple-500/30 transition-colors uppercase tracking-widest text-sm"
+        >
+          <BookOpen className="w-4 h-4" />
+          Read the summary
+        </button>
+      </div >
     );
   }
 

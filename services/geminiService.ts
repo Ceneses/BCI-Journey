@@ -201,3 +201,160 @@ export const generateCharacterSpeech = async (text: string, speaker: Speaker): P
   if (!audioData) throw new Error("No audio generated");
   return audioData;
 };
+
+export const generateLessonSummary = async (question: string, regionName: string): Promise<string[]> => {
+  try {
+    const client = getAIClient();
+
+    if (!process.env.API_KEY) {
+      return [
+        "Neural Link Offline: Cannot retrieve live data.",
+        "Local archives are available for basic review.",
+        "Please check your connection to the central cortex."
+      ];
+    }
+
+    const response = await client.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Provide 3 key educational takeaways for a student asking: "${question}" in the context of the "${regionName}" brain region.
+      
+      Return a JSON array of strings, e.g., ["Point 1", "Point 2", "Point 3"].
+      Keep each point concise (under 15 words) and easy to understand for a young audience.`,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    if (!response.text) throw new Error("No response from AI");
+
+    const cleanText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanText);
+
+    if (Array.isArray(parsed)) {
+      return parsed as string[];
+    } else if (parsed.takeaways && Array.isArray(parsed.takeaways)) {
+      return parsed.takeaways as string[];
+    } else {
+      // Fallback if structure is weird
+      return [
+        "The brain is complex and amazing.",
+        "Each part has a special job.",
+        "Keep exploring to learn more!"
+      ];
+    }
+
+  } catch (error) {
+    console.error("Error generating lesson summary:", error);
+    return [
+      "Error retrieving data from the bio-digital network.",
+      "Signal interference detected in this sector.",
+      "Try accessing the node again later."
+    ];
+  }
+};
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number; // 0-3
+  explanation: string;
+}
+
+export const generateNeuronQuiz = async (
+  question: string,
+  regionName: string,
+  summaryPoints: string[]
+): Promise<QuizQuestion[]> => {
+  try {
+    const client = getAIClient();
+
+    if (!process.env.API_KEY) {
+      // Fallback Static Quiz
+      return [
+        {
+          question: "What is the primary function of this brain region?",
+          options: ["Processing visual information", "Controlling movement", "Storing memories", "Regulating heartbeat"],
+          correctAnswer: 0,
+          explanation: "Simulation Mode: Offline fallback data."
+        },
+        {
+          question: "Which character explains the biological aspects?",
+          options: ["Spark", "Synapse", "Neuron", "Cortex"],
+          correctAnswer: 1,
+          explanation: "Synapse is the biological expert."
+        },
+        {
+          question: "Which character explains the technical aspects?",
+          options: ["Spark", "Synapse", "Axon", "Dendrite"],
+          correctAnswer: 0,
+          explanation: "Spark is the digital/tech expert."
+        },
+        {
+          question: "True or False: The brain uses electricity.",
+          options: ["True", "False", "Only when sleeping", "Never"],
+          correctAnswer: 0,
+          explanation: "Neurons communicate via electrical signals."
+        },
+        {
+          question: "What did you learn from the summary?",
+          options: ["Nothing", "Something cool", "The summary points", "Everything"],
+          correctAnswer: 2,
+          explanation: "Review the summary to reinforce learning."
+        }
+      ];
+    }
+
+    const response = await client.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Create a 5-question multiple-choice quiz about "${question}" in relation to the "${regionName}".
+      
+      Context:
+      - Summary Points: ${JSON.stringify(summaryPoints)}
+      - Dialogue Context: Synapse (biology) and Spark (tech) discussed this.
+      
+      Requirements:
+      - Questions 1-3 should test the Summary Points provided.
+      - Questions 4-5 should be about the general concept or the characters (Synapse/Spark).
+      - Target audience: Young students.
+      - Return ONLY a JSON array of objects.
+      
+      JSON Structure:
+      [
+        {
+          "question": "Question text here",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctAnswer": 0, // Index of correct option (0-3)
+          "explanation": "Brief explanation of why it's correct"
+        }
+      ]`,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    if (!response.text) throw new Error("No response from AI");
+
+    const cleanText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanText);
+
+    if (Array.isArray(parsed)) {
+      return parsed as QuizQuestion[];
+    } else if (parsed.quiz && Array.isArray(parsed.quiz)) {
+      return parsed.quiz as QuizQuestion[];
+    } else {
+      throw new Error("Invalid quiz format");
+    }
+
+  } catch (error) {
+    console.error("Error generating quiz:", error);
+    // Return fallback on error
+    return [
+      {
+        question: "Connection disrupted. What should you do?",
+        options: ["Panic", "Try again later", "Reboot", "Call Spark"],
+        correctAnswer: 1,
+        explanation: "Neural link unstable."
+      }
+    ] as QuizQuestion[];
+  }
+};

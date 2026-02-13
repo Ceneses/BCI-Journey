@@ -63,8 +63,19 @@ export interface NetworkStructure {
   columnSizes: number[]; // [1, 5, 10, 15, 19, 19, 15, 10, 5, 1]
 }
 
+export interface QuestionProgress {
+  questionId: number;
+  hasListened: boolean;
+  hasTalked: boolean;
+  hasReadSummary: boolean;
+  quizScore?: number; // 0-5
+  isActivated: boolean; // true if quiz passed
+}
+
 export interface UserProgress {
   worldId: number;
   completedQuestions: number[];
+  questionProgress: Record<number, QuestionProgress>;
+  totalSomas: number; // Gamification currency
   lastUpdated: string;
 }
