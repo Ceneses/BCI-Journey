@@ -4,7 +4,11 @@ import { WORLDS } from '../constants';
 import NeuralNavigator from '../components/NeuralNavigator';
 
 const NeuralNavigatorPage: React.FC = () => {
-    const { worldName } = useParams<{ worldName: string }>();
+    const { worldName, questionSlug, mode } = useParams<{
+        worldName: string;
+        questionSlug?: string;
+        mode?: string;
+    }>();
 
     // Find the world by converting the URL param back to the region name
     const world = WORLDS.find(w =>
@@ -15,7 +19,13 @@ const NeuralNavigatorPage: React.FC = () => {
         return <Navigate to="/journey" replace />;
     }
 
-    return <NeuralNavigator worldId={world.id} />;
+    return (
+        <NeuralNavigator
+            worldId={world.id}
+            initialQuestionSlug={questionSlug}
+            initialMode={mode as 'listen' | 'talk' | 'summary' | 'quiz' | undefined}
+        />
+    );
 };
 
 export default NeuralNavigatorPage;

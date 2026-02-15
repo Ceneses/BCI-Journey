@@ -16,9 +16,10 @@ interface SimulationModeProps {
   question?: string; // Optional specific question to focus on
   questionId?: number; // Need this for progress tracking
   initialMode?: 'listen' | 'talk'; // Optional initial mode
+  onSwitchMode?: (mode: 'listen' | 'talk' | 'summary') => void;
 }
 
-const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question, questionId, initialMode }) => {
+const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question, questionId, initialMode, onSwitchMode }) => {
   const [script, setScript] = useState<SimulationScript | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
 
         setScript(data);
         // Pre-load first step media
-        if (data.exchanges.length > 0) {
+        if (data.exchanges.length > 0 && initialMode !== 'talk') {
           await loadStepMedia(data.exchanges[0], ctx);
         }
         setLoading(false);
@@ -126,7 +127,12 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
     }
     setLiveMode(null);
     setPhase('selection');
-    setShowSummary(true);
+
+    if (onSwitchMode) {
+      onSwitchMode('summary');
+    } else {
+      setShowSummary(true);
+    }
   };
 
   // State for error handling
@@ -194,7 +200,15 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
           {/* Synapse Option */}
           <button
-            onClick={() => startLiveSession('Synapse')}
+            onClick={() => {
+              if (initialMode === 'talk') {
+                startLiveSession('Synapse');
+              } else if (onSwitchMode) {
+                onSwitchMode('talk');
+              } else {
+                startLiveSession('Synapse');
+              }
+            }}
             className="group relative bg-indigo-900/20 border border-neon-blue/30 hover:border-neon-blue rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-neon-blue/10"
           >
             <div className="w-24 h-24 rounded-full bg-neon-blue/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#00f3ff] transition-shadow">
@@ -206,7 +220,15 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
 
           {/* Spark Option */}
           <button
-            onClick={() => startLiveSession('Spark')}
+            onClick={() => {
+              if (initialMode === 'talk') {
+                startLiveSession('Spark');
+              } else if (onSwitchMode) {
+                onSwitchMode('talk');
+              } else {
+                startLiveSession('Spark');
+              }
+            }}
             className="group relative bg-yellow-900/20 border border-electric-gold/30 hover:border-electric-gold rounded-lg p-8 flex flex-col items-center transition-all hover:scale-105 hover:bg-electric-gold/10"
           >
             <div className="w-24 h-24 rounded-full bg-electric-gold/10 flex items-center justify-center mb-6 group-hover:shadow-[0_0_20px_#ffd700] transition-shadow">
@@ -222,7 +244,13 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         </button>
 
         <button
-          onClick={() => setShowSummary(true)}
+          onClick={() => {
+            if (onSwitchMode) {
+              onSwitchMode('summary');
+            } else {
+              setShowSummary(true);
+            }
+          }}
           className="mt-8 flex items-center gap-2 px-6 py-3 bg-purple-500/20 border border-purple-500 text-purple-400 font-rajdhani hover:bg-purple-500/30 transition-colors uppercase tracking-widest text-sm"
         >
           <BookOpen className="w-4 h-4" />

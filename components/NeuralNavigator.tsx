@@ -13,13 +13,16 @@ import LoadingTeaser from './LoadingTeaser';
 import SimulationMode from './SimulationMode';
 import LessonSummary from './LessonSummary';
 import NeuronActivationQuiz from './NeuronActivationQuiz';
+import { slugify } from '../utils/stringUtils';
 import { ArrowLeft, Mouse, Hand, Info, Lightbulb, Lock, Unlock, CheckCircle2, Circle, BookOpen, Award, Zap } from 'lucide-react';
 
 interface NeuralNavigatorProps {
     worldId: number;
+    initialQuestionSlug?: string;
+    initialMode?: 'listen' | 'talk' | 'summary' | 'quiz';
 }
 
-const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
+const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuestionSlug, initialMode }) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [showTeaser, setShowTeaser] = useState(true);
@@ -43,6 +46,60 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
     useEffect(() => {
         loadQuestions();
     }, [worldId]);
+
+    // Handle initial deep linking
+    useEffect(() => {
+        if (!network || !world) return;
+
+        if (initialQuestionSlug) {
+            // Find the node that matches the slug
+            const targetNode = network.nodes.find(node =>
+                slugify(node.question) === initialQuestionSlug
+            );
+
+            if (targetNode) {
+                // If node is locked, we probably shouldn't show it, but for now let's just select it if unlocked
+                // Or maybe we select it regardless to show it's locked?
+                // For now, respect unlock status unless we want to allow deep linking to locked content (cheating?)
+                if (targetNode.isUnlocked) {
+                    setSelectedNode(targetNode);
+                    const progress = getQuestionProgress(world.id, targetNode.questionId);
+                    setCurrentQuestionProgress(progress);
+
+                    // Handle mode
+                    // First reset all modes
+                    setSimulationMode(null);
+                    setShowSimulation(false);
+                    setShowSummary(false);
+                    setShowQuiz(false);
+
+                    if (initialMode) {
+                        if (initialMode === 'listen') {
+                            setSimulationMode('listen');
+                            setShowSimulation(true);
+                        } else if (initialMode === 'talk') {
+                            setSimulationMode('talk');
+                            setShowSimulation(true);
+                        } else if (initialMode === 'summary') {
+                            setShowSummary(true);
+                        } else if (initialMode === 'quiz') {
+                            setShowQuiz(true);
+                        }
+                    } else {
+                        // Default state if just question selected: show question panel (which means no overlays)
+                        // All overlays already reset above.
+                    }
+                }
+            }
+
+        } else {
+            // If no slug, clear selection (e.g. back navigation)
+            setSelectedNode(null);
+            setShowSimulation(false);
+            setShowSummary(false);
+            setShowQuiz(false);
+        }
+    }, [network, initialQuestionSlug, initialMode, world]);
 
     useEffect(() => {
         // Auto-hide teaser after 3 seconds
@@ -109,17 +166,37 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
             playNodeSelectSound(audioContext);
         }
 
-        setSelectedNode(node);
-
-        // Load progress for this node
+        // Navigate to the question URL
         if (world) {
-            const progress = getQuestionProgress(world.id, node.questionId);
-            setCurrentQuestionProgress(progress);
+            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+            const questionSlug = slugify(node.question);
+            navigate(`/journey/${regionSlug}/${questionSlug}`);
         }
+
+        // Local state update happens via useEffect when URL changes, 
+        // but for immediate feedback we can set it here too, 
+        // though it's better to rely on the URL source of truth if possible.
+        // However, standard React pattern often mixes both or relies on one. 
+        // Let's rely on the useEffect listening to props (which come from URL) to set state.
+        // ACTUALLY: The parent passes props, but those props only update if the parent re-renders.
+        // NeuralNavigatorPage re-renders when params change. 
+        // So navigate() -> URL update -> NeuralNavigatorPage re-render -> new props -> useEffect in NeuralNavigator.
+        // So we DON'T need to set selectedNode here directly if we trust the loop.
+        // But for smoothness, we might want to? 
+        // Let's trust the loop for consistency.
     };
 
     const handleBack = () => {
-        navigate('/journey');
+        if (selectedNode) {
+            // If we have a selected node, back means deselect it (go to world view)
+            if (world) {
+                const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                navigate(`/journey/${regionSlug}`);
+            }
+        } else {
+            // If no node selected, back means go to journey map
+            navigate('/journey');
+        }
     };
 
     const handleStartSimulation = (mode: 'listen' | 'talk') => {
@@ -128,16 +205,25 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
             updateQuestionProgress(world.id, selectedNode.questionId, mode);
             // Refresh progress state locally
             setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
-            // onStartSimulation(selectedNode.question, mode); // This function is not defined in the provided context
+
+            // Navigate to mode URL
+            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+            const questionSlug = slugify(selectedNode.question);
+            navigate(`/journey/${regionSlug}/${questionSlug}/${mode}`);
         }
-        setSimulationMode(mode);
-        setShowSimulation(true);
     };
 
     const handleExitSimulation = () => {
-        setShowSimulation(false);
-        setSimulationMode(null);
-        setSelectedNode(null);
+        if (selectedNode && world) {
+            // Return to question view
+            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+            const questionSlug = slugify(selectedNode.question);
+            navigate(`/journey/${regionSlug}/${questionSlug}`);
+        } else {
+            setShowSimulation(false);
+            setSimulationMode(null);
+            setSelectedNode(null);
+        }
     };
 
     if (error) {
@@ -173,7 +259,15 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                 world={world}
                 onExit={handleExitSimulation}
                 question={selectedNode.question}
+                questionId={selectedNode.questionId}
                 initialMode={simulationMode || 'listen'}
+                onSwitchMode={(newMode) => {
+                    // Navigate to the new mode URL
+                    const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                    const questionSlug = slugify(selectedNode.question);
+                    // Mapping 'summary' to URL path if needed, but 'summary' is a valid mode in our route
+                    navigate(`/journey/${regionSlug}/${questionSlug}/${newMode}`);
+                }}
             />
         );
     }
@@ -386,11 +480,14 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                     question={selectedNode.question}
                     regionName={world?.region || 'Unknown Region'}
                     onClose={() => {
-                        setShowSummary(false);
-                        // Refresh progress on close to be sure?
-                        // Already updated on click, but maybe good to re-fetch high level if needed.
                         if (world && selectedNode) {
+                            // Refresh progress
                             setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+
+                            // Return to question view
+                            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                            const questionSlug = slugify(selectedNode.question);
+                            navigate(`/journey/${regionSlug}/${questionSlug}`);
                         }
                     }}
                 />
@@ -403,28 +500,13 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                     questionId={selectedNode.questionId}
                     worldId={world.id}
                     regionName={world.region}
-                    summaryPoints={[]} // We might need to fetch or store these if we want them passed strictly, but the service handles generation too.
-                    // Wait, the service needs summary points to generate the quiz.
-                    // NeuralNavigator doesn't have the summary points stored.
-                    // We should modify LessonSummary or NeuralNavigator to store the generated points?
-                    // Or just let Gemini generate fresh points for the quiz generation context internally?
-                    // The prompt in generateNeuronQuiz asks for summaryPoints.
-                    // Let's pass an empty array and let the service handle it or fetch fresh ones?
-                    // Actually, looking at geminiService, it USES the summaryPoints in the prompt.
-                    // If we send empty, the quiz about summary will be empty/bad.
-                    // We should probably fetch the summary first if we don't have it?
-                    // OR store it in progress?
-                    // Storing in progress is heavy.
-                    // Let's make NeuronActivationQuiz fetch the summary if not provided?
-                    // Or just pass the logic to generateNeuronQuiz to handle "Generate summary then quiz".
-                    // Implementation Plan didn't specify storing summary.
-                    // I'll update LessonSummary to maybe cache it?
-                    // For this iteration, let's just make the quiz generation fetch a summary internally if needed?
-                    // No, generateNeuronQuiz takes summaryPoints as arg.
-                    // I will update NeuronActivationQuiz to fetch summary first if we don't have it.
-                    // But wait, NeuronActivationQuiz calls generateNeuronQuiz.
-                    // I will fix this by updating NeuronActivationQuiz to generate summary first.
-                    onClose={() => setShowQuiz(false)}
+                    summaryPoints={[]}
+                    onClose={() => {
+                        // Return to question view
+                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                        const questionSlug = slugify(selectedNode.question);
+                        navigate(`/journey/${regionSlug}/${questionSlug}`);
+                    }}
                     onComplete={(score) => {
                         // Handle completion
                         if (score >= 3) {
@@ -450,7 +532,14 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                                 </h2>
                             </div>
                             <button
-                                onClick={() => setSelectedNode(null)}
+                                onClick={() => {
+                                    if (world) {
+                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                                        navigate(`/journey/${regionSlug}`);
+                                    } else {
+                                        setSelectedNode(null);
+                                    }
+                                }}
                                 className="text-gray-400 hover:text-white transition-colors"
                             >
                                 ✕
@@ -480,11 +569,14 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
                         <div className="mt-4">
                             <button
                                 onClick={() => {
-                                    setShowSummary(true);
                                     if (selectedNode && world) {
                                         updateQuestionProgress(world.id, selectedNode.questionId, 'summary');
-                                        // Refresh progress state locally
+                                        // Refresh progress state locally (though nav will trigger re-render eventually)
                                         setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+
+                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                                        const questionSlug = slugify(selectedNode.question);
+                                        navigate(`/journey/${regionSlug}/${questionSlug}/summary`);
                                     }
                                 }}
                                 className="w-full flex items-center justify-center gap-2 p-3 rounded border border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all font-mono text-sm uppercase tracking-widest mb-3"
@@ -495,11 +587,17 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId }) => {
 
                             {/* Activate Neuron Button */}
                             <button
-                                onClick={() => setShowQuiz(true)}
+                                onClick={() => {
+                                    if (selectedNode && world) {
+                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                                        const questionSlug = slugify(selectedNode.question);
+                                        navigate(`/journey/${regionSlug}/${questionSlug}/quiz`);
+                                    }
+                                }}
                                 disabled={!currentQuestionProgress?.hasListened || !currentQuestionProgress?.hasTalked || !currentQuestionProgress?.hasReadSummary}
                                 className={`w-full flex items-center justify-center gap-2 p-4 rounded border font-orbitron font-bold tracking-widest transition-all ${currentQuestionProgress?.hasListened && currentQuestionProgress?.hasTalked && currentQuestionProgress?.hasReadSummary
-                                        ? 'bg-neon-pink text-black border-neon-pink hover:bg-white hover:scale-105 shadow-[0_0_15px_#ff00ff]'
-                                        : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
+                                    ? 'bg-neon-pink text-black border-neon-pink hover:bg-white hover:scale-105 shadow-[0_0_15px_#ff00ff]'
+                                    : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
                                     }`}
                             >
                                 {currentQuestionProgress?.isActivated ? (

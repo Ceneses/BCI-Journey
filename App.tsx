@@ -11,6 +11,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/journey" element={<BCIJourney />} />
         <Route path="/journey/:worldName" element={<NeuralNavigatorPage />} />
+        <Route path="/journey/:worldName/:questionSlug" element={<NeuralNavigatorPage />} />
+        <Route path="/journey/:worldName/:questionSlug/:mode" element={<NeuralNavigatorPage />} />
       </Routes>
     </BrowserRouter>
   );
