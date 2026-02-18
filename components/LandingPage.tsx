@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, ArrowRight, Activity, Zap, Globe, Award, Beaker, Bluetooth, BarChart3, ChevronRight } from 'lucide-react';
+import { Brain, ArrowRight, Activity, Zap, Globe, Award, Beaker, Bluetooth, BarChart3, ChevronRight, LogIn, UserPlus } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
    const navigate = useNavigate();
-   const [email, setEmail] = useState("");
 
    const schools = [
       "Hangzhou Chongwen Experimental School",
@@ -44,12 +43,22 @@ const LandingPage: React.FC = () => {
                <a href="#schools" className="hover:text-white transition-colors">PARTNERS</a>
                <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             </div>
-            <button
-               onClick={() => navigate('/journey')}
-               className="px-6 py-2 bg-neon-blue/10 border border-neon-blue/50 text-neon-blue font-orbitron text-xs font-bold rounded hover:bg-neon-blue hover:text-black transition-all"
-            >
-               LAUNCH APP
-            </button>
+            <div className="flex items-center gap-3">
+               <button
+                  onClick={() => navigate('/login')}
+                  className="flex items-center gap-2 px-5 py-2 border border-white/20 text-gray-300 font-orbitron text-xs font-bold rounded hover:bg-white/10 hover:text-white transition-all"
+               >
+                  <LogIn className="w-3.5 h-3.5" />
+                  LOG IN
+               </button>
+               <button
+                  onClick={() => navigate('/signup')}
+                  className="flex items-center gap-2 px-5 py-2 bg-neon-blue/10 border border-neon-blue/50 text-neon-blue font-orbitron text-xs font-bold rounded hover:bg-neon-blue hover:text-black transition-all"
+               >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  SIGN UP
+               </button>
+            </div>
          </nav>
 
          {/* Hero Section */}
@@ -68,15 +77,19 @@ const LandingPage: React.FC = () => {
 
             <div className="flex flex-col md:flex-row gap-4 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
                <button
-                  onClick={() => navigate('/journey')}
+                  onClick={() => navigate('/signup')}
                   className="group relative px-8 py-4 bg-neon-blue text-black font-orbitron font-bold text-lg tracking-widest overflow-hidden clip-path-polygon transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(0,243,255,0.6)] rounded"
                >
                   <span className="relative flex items-center gap-3">
-                     START YOUR NEURO-JOURNEY <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                     CREATE FREE ACCOUNT <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                </button>
-               <button className="px-8 py-4 border border-white/20 hover:bg-white/5 text-white font-orbitron font-bold text-lg tracking-widest rounded transition-all">
-                  WATCH TRAILER
+               <button
+                  onClick={() => navigate('/login')}
+                  className="group px-8 py-4 border border-white/20 hover:bg-white/5 text-white font-orbitron font-bold text-lg tracking-widest rounded transition-all flex items-center justify-center gap-3"
+               >
+                  <LogIn className="w-5 h-5" />
+                  LOG IN
                </button>
             </div>
          </header>
@@ -255,25 +268,29 @@ const LandingPage: React.FC = () => {
             </div>
          </section>
 
-         {/* Lead Capture */}
+         {/* Call to Action */}
          <section className="relative z-10 py-24 px-4 bg-gradient-to-b from-transparent to-neon-blue/5">
             <div className="max-w-xl mx-auto text-center p-8 border border-white/10 bg-black/60 backdrop-blur-xl rounded-2xl shadow-[0_0_50px_rgba(0,100,255,0.1)]">
                <h2 className="text-2xl font-orbitron font-bold mb-4">JOIN THE NEURAL NETWORK</h2>
-               <p className="text-gray-400 mb-8 font-rajdhani">Get early access to new worlds, features, and exclusive teacher resources.</p>
+               <p className="text-gray-400 mb-8 font-rajdhani">Create your free account and start exploring neuroscience through immersive 3D simulations.</p>
 
-               <form className="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
-                  <input
-                     type="email"
-                     placeholder="Enter your email address"
-                     className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded focus:border-neon-blue focus:outline-none focus:bg-white/10 text-white placeholder-gray-500 font-mono"
-                     value={email}
-                     onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <button className="w-full py-4 bg-white text-black font-orbitron font-bold tracking-widest hover:bg-neon-blue transition-colors rounded">
-                     JOIN WAITLIST
+               <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                     onClick={() => navigate('/signup')}
+                     className="flex-1 group py-4 bg-white text-black font-orbitron font-bold tracking-widest hover:bg-neon-blue transition-colors rounded flex items-center justify-center gap-3"
+                  >
+                     <UserPlus className="w-5 h-5" />
+                     SIGN UP FREE
                   </button>
-               </form>
-               <p className="mt-4 text-[10px] text-gray-500">No spam. Only neural signals.</p>
+                  <button
+                     onClick={() => navigate('/login')}
+                     className="flex-1 py-4 border border-white/20 text-white font-orbitron font-bold tracking-widest hover:bg-white/5 transition-colors rounded flex items-center justify-center gap-3"
+                  >
+                     <LogIn className="w-5 h-5" />
+                     LOG IN
+                  </button>
+               </div>
+               <p className="mt-6 text-[10px] text-gray-500">Sign up with WeChat · LINE · Gmail · School Email</p>
             </div>
          </section>
 

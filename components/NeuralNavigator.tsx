@@ -166,35 +166,21 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
             playNodeSelectSound(audioContext);
         }
 
-        // Navigate to the question URL
+        // Use local state only — no URL navigation.
+        // URL changes only happen when the user picks a mode (listen/talk/summary/quiz).
+        setSelectedNode(node);
         if (world) {
-            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-            const questionSlug = slugify(node.question);
-            navigate(`/journey/${regionSlug}/${questionSlug}`);
+            setCurrentQuestionProgress(getQuestionProgress(world.id, node.questionId));
         }
-
-        // Local state update happens via useEffect when URL changes, 
-        // but for immediate feedback we can set it here too, 
-        // though it's better to rely on the URL source of truth if possible.
-        // However, standard React pattern often mixes both or relies on one. 
-        // Let's rely on the useEffect listening to props (which come from URL) to set state.
-        // ACTUALLY: The parent passes props, but those props only update if the parent re-renders.
-        // NeuralNavigatorPage re-renders when params change. 
-        // So navigate() -> URL update -> NeuralNavigatorPage re-render -> new props -> useEffect in NeuralNavigator.
-        // So we DON'T need to set selectedNode here directly if we trust the loop.
-        // But for smoothness, we might want to? 
-        // Let's trust the loop for consistency.
     };
 
     const handleBack = () => {
         if (selectedNode) {
-            // If we have a selected node, back means deselect it (go to world view)
-            if (world) {
-                const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                navigate(`/journey/${regionSlug}`);
-            }
+            // Deselect node — local state only, no URL change
+            setSelectedNode(null);
+            setCurrentQuestionProgress(null);
         } else {
-            // If no node selected, back means go to journey map
+            // No node selected, back means go to journey map
             navigate('/journey');
         }
     };
@@ -214,15 +200,12 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
     };
 
     const handleExitSimulation = () => {
+        // Return to question panel view — local state only
+        setShowSimulation(false);
+        setSimulationMode(null);
+        // Refresh progress after simulation
         if (selectedNode && world) {
-            // Return to question view
-            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-            const questionSlug = slugify(selectedNode.question);
-            navigate(`/journey/${regionSlug}/${questionSlug}`);
-        } else {
-            setShowSimulation(false);
-            setSimulationMode(null);
-            setSelectedNode(null);
+            setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
         }
     };
 
@@ -326,6 +309,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                         network={network}
                         onNodeClick={handleNodeSelect}
                         worldColor={world?.color || '#00f3ff'}
+                        selectedNodeId={selectedNode?.id ?? null}
                     />
 
                     <Stars radius={150} depth={100} count={5000} factor={4} saturation={0} fade speed={0.5} />
@@ -480,14 +464,9 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                     question={selectedNode.question}
                     regionName={world?.region || 'Unknown Region'}
                     onClose={() => {
+                        setShowSummary(false);
                         if (world && selectedNode) {
-                            // Refresh progress
                             setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
-
-                            // Return to question view
-                            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                            const questionSlug = slugify(selectedNode.question);
-                            navigate(`/journey/${regionSlug}/${questionSlug}`);
                         }
                     }}
                 />
@@ -502,10 +481,10 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                     regionName={world.region}
                     summaryPoints={[]}
                     onClose={() => {
-                        // Return to question view
-                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                        const questionSlug = slugify(selectedNode.question);
-                        navigate(`/journey/${regionSlug}/${questionSlug}`);
+                        setShowQuiz(false);
+                        if (world && selectedNode) {
+                            setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+                        }
                     }}
                     onComplete={(score) => {
                         // Handle completion
@@ -533,12 +512,8 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                             </div>
                             <button
                                 onClick={() => {
-                                    if (world) {
-                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                                        navigate(`/journey/${regionSlug}`);
-                                    } else {
-                                        setSelectedNode(null);
-                                    }
+                                    setSelectedNode(null);
+                                    setCurrentQuestionProgress(null);
                                 }}
                                 className="text-gray-400 hover:text-white transition-colors"
                             >

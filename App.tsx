@@ -6,12 +6,16 @@ import NeuralNavigatorPage from './pages/NeuralNavigatorPage';
 import BCILabPage from './pages/BCILabPage';
 import ExperimentSetupPage from './pages/ExperimentSetupPage';
 import ExperimentStartPage from './pages/ExperimentStartPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/bcilab" element={<BCILabPage />} />
         <Route path="/bcilab/:experimentId" element={<ExperimentSetupPage />} />
         <Route path="/bcilab/:experimentId/start" element={<ExperimentStartPage />} />

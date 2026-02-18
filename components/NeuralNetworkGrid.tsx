@@ -9,12 +9,14 @@ interface NeuralNetworkGridProps {
     network: NetworkStructure;
     onNodeClick: (node: NeuralNodeType) => void;
     worldColor: string;
+    selectedNodeId: number | null;
 }
 
 const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
     network,
     onNodeClick,
-    worldColor
+    worldColor,
+    selectedNodeId
 }) => {
     return (
         <group>
@@ -33,6 +35,7 @@ const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
                         position={position}
                         onClick={() => onNodeClick(node)}
                         worldColor={worldColor}
+                        isSelected={node.id === selectedNodeId}
                     />
                 );
             })}

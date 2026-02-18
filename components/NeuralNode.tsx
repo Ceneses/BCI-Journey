@@ -8,35 +8,46 @@ interface NeuralNodeProps {
     position: { x: number; y: number; z: number };
     onClick: () => void;
     worldColor: string;
+    isSelected: boolean;
 }
 
-const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldColor }) => {
+const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldColor, isSelected }) => {
     const meshRef = useRef<Mesh>(null);
     const [hovered, setHovered] = useState(false);
 
-    // Pulsing animation for active nodes
+    // Pulsing animation for active or selected nodes
     useFrame((state) => {
-        if (meshRef.current && node.state === 'active') {
-            const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
-            meshRef.current.scale.setScalar(scale);
+        if (meshRef.current) {
+            if (isSelected) {
+                const scale = 1.15 + Math.sin(state.clock.elapsedTime * 3) * 0.08;
+                meshRef.current.scale.setScalar(scale);
+            } else if (node.state === 'active') {
+                const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
+                meshRef.current.scale.setScalar(scale);
+            } else {
+                meshRef.current.scale.setScalar(1);
+            }
         }
     });
 
     // Determine node appearance based on state
     const getNodeColor = () => {
         if (!node.isUnlocked) return '#333333';
+        if (isSelected) return '#ffffff'; // white when selected
         if (node.state === 'active') return worldColor;
         return hovered ? worldColor : '#666666';
     };
 
     const getIntensity = () => {
         if (!node.isUnlocked) return 0.1;
+        if (isSelected) return 3.0;
         if (node.state === 'active') return 2.0;
         return hovered ? 1.0 : 0.5;
     };
 
     const getOpacity = () => {
         if (!node.isUnlocked) return 0.3;
+        if (isSelected) return 1.0;
         return 0.8;
     };
 
@@ -77,12 +88,12 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
 
             {/* Glow ring for unlocked nodes */}
             {node.isUnlocked && (
-                <mesh scale={1.3}>
+                <mesh scale={isSelected ? 1.5 : 1.3}>
                     <ringGeometry args={[0.35, 0.4, 32]} />
                     <meshBasicMaterial
-                        color={getNodeColor()}
+                        color={isSelected ? '#ffffff' : getNodeColor()}
                         transparent
-                        opacity={node.state === 'active' ? 0.4 : 0.2}
+                        opacity={isSelected ? 0.6 : node.state === 'active' ? 0.4 : 0.2}
                     />
                 </mesh>
             )}
