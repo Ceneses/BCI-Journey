@@ -3,12 +3,18 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import BCIJourney from './components/BCIJourney';
 import NeuralNavigatorPage from './pages/NeuralNavigatorPage';
+import BCILabPage from './pages/BCILabPage';
+import ExperimentSetupPage from './pages/ExperimentSetupPage';
+import ExperimentStartPage from './pages/ExperimentStartPage';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/bcilab" element={<BCILabPage />} />
+        <Route path="/bcilab/:experimentId" element={<ExperimentSetupPage />} />
+        <Route path="/bcilab/:experimentId/start" element={<ExperimentStartPage />} />
         <Route path="/journey" element={<BCIJourney />} />
         <Route path="/journey/:worldName" element={<NeuralNavigatorPage />} />
         <Route path="/journey/:worldName/:questionSlug" element={<NeuralNavigatorPage />} />
