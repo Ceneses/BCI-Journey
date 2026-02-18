@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown, Zap } from 'lucide-react';
+import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown, Zap, Beaker } from 'lucide-react';
 import { WorldData, GeneratedContent } from '../types';
 import { generateWorldBriefing } from '../services/geminiService';
 import { getTotalSomas } from '../utils/progressManager';
@@ -217,6 +217,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
               <span className="text-neon-blue">RENDER ENGINE:</span> ACTIVE
             </div>
           </div>
+
+          {/* BCI Lab shortcut */}
+          <button
+            onClick={() => navigate('/bcilab')}
+            className="pointer-events-auto group flex flex-col items-center gap-2"
+          >
+            <div className="relative px-5 py-3 bg-black/80 border border-neon-blue/40 backdrop-blur-md rounded-xl hover:border-neon-blue hover:bg-neon-blue/10 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,243,255,0.25)] flex items-center gap-3">
+              {/* Animated corner accents */}
+              <div className="absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t border-l border-neon-blue opacity-60 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b border-r border-neon-blue opacity-60 group-hover:opacity-100 transition-opacity" />
+              <Beaker className="w-4 h-4 text-neon-blue group-hover:animate-pulse" />
+              <div className="text-left">
+                <p className="font-orbitron text-[10px] font-bold tracking-widest text-neon-blue">BCI LAB</p>
+                <p className="font-mono text-[9px] text-gray-500">12 EXPERIMENTS</p>
+              </div>
+            </div>
+          </button>
+
           <div className="text-right">
             <p className="text-electric-gold font-orbitron animate-pulse text-lg drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
               INITIALIZE NEURAL INTERFACE
@@ -225,6 +243,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
             </p>
           </div>
         </footer>
+
       </div>
     );
   }
