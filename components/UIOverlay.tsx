@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, Settings, LogOut, FileText, ChevronDown, Zap, Beaker, ChevronUp } from 'lucide-react';
+import { Brain, Cpu, Lock, X, PlayCircle, Activity, Database, Settings, LogOut, FileText, ChevronDown, Zap, Beaker, ChevronUp } from 'lucide-react';
 import { WorldData } from '../types';
 import { getTotalSomas } from '../utils/progressManager';
 
@@ -54,6 +54,8 @@ const DataCard: React.FC<{ title: string; icon: React.ReactNode; children: React
   );
 };
 
+type ProfileViewMode = 'menu' | 'interfaceSettings' | 'missionLogs';
+
 const UIOverlay: React.FC<UIOverlayProps> = ({
   selectedWorld,
   isPanelExpanded,
@@ -68,7 +70,35 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   // Profile Dropdown State
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileViewMode, setProfileViewMode] = useState<ProfileViewMode>('menu');
   const profileRef = useRef<HTMLDivElement>(null);
+  const profileSpecifications = {
+    displayedUserName: 'NEURAL CADET',
+    schoolName: 'NeuroTech Academy',
+    birthYear: '2011',
+    grade: 'Grade 9',
+    uiLanguage: 'English'
+  };
+  const languageOptions = ['English', 'Chinese', 'Japanese', 'German', 'Spanish'];
+  const missionChecklist = [
+    {
+      id: 'visit-nodes',
+      title: 'Visit 3 nodes in the next 24 hours',
+      progress: '0 / 3 nodes visited',
+      isComplete: false
+    },
+    {
+      id: 'next-level-somas',
+      title: 'Accumulate enough SOMAS to pass to the next level',
+      progress: 'SOMAS threshold not reached yet',
+      isComplete: false
+    }
+  ];
+
+  const closeProfilePanel = () => {
+    setIsProfileOpen(false);
+    setProfileViewMode('menu');
+  };
 
   useEffect(() => {
     // Load Total Somas (from all worlds or just accumulated in general?)
@@ -97,7 +127,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
+        closeProfilePanel();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -127,7 +157,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           {/* Profile Section */}
           <div className="relative pointer-events-auto" ref={profileRef}>
             <button
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              onClick={() => {
+                const nextOpenState = !isProfileOpen;
+                setIsProfileOpen(nextOpenState);
+                if (nextOpenState) {
+                  setProfileViewMode('menu');
+                }
+              }}
               className="flex items-center gap-3 group focus:outline-none"
             >
               <div className="text-right hidden md:block">
@@ -154,57 +190,151 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             </button>
 
             {isProfileOpen && (
-              <div className="absolute right-0 top-16 w-64 bg-cyber-black/95 backdrop-blur-xl border border-neon-blue/30 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
-                {/* User Info Header */}
-                <div className="p-4 border-b border-white/10 bg-white/5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-2 opacity-20">
-                    <Activity className="w-16 h-16 text-neon-blue" />
-                  </div>
-                  <div className="flex items-center gap-3 mb-3 relative z-10">
-                    <div className="w-10 h-10 rounded-full bg-neon-blue/20 flex items-center justify-center border border-neon-blue/50 overflow-hidden">
-                      <img
-                        src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop"
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+              <div className={`absolute right-0 top-16 bg-cyber-black/95 backdrop-blur-xl border border-neon-blue/30 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in slide-in-from-top-2 z-50 ${profileViewMode === 'menu' ? 'w-64' : 'w-[min(92vw,520px)] max-h-[min(82vh,620px)] flex flex-col'}`}>
+                {profileViewMode === 'menu' ? (
+                  <>
+                    {/* User Info Header */}
+                    <div className="p-4 border-b border-white/10 bg-white/5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-2 opacity-20">
+                        <Activity className="w-16 h-16 text-neon-blue" />
+                      </div>
+                      <div className="flex items-center gap-3 mb-3 relative z-10">
+                        <div className="w-10 h-10 rounded-full bg-neon-blue/20 flex items-center justify-center border border-neon-blue/50 overflow-hidden">
+                          <img
+                            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop"
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="font-orbitron text-white text-sm">NEURAL CADET</p>
+                          <p className="font-mono text-gray-400 text-xs">ID: 8492-AX</p>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mb-1">
+                        <div className="bg-gradient-to-r from-neon-blue to-neon-pink h-full w-[35%]"></div>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-neon-blue">SOMAS: {totalSomas.toLocaleString()}</span>
+                        <span className="text-gray-500">NEXT: LEVEL 2</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-orbitron text-white text-sm">NEURAL CADET</p>
-                      <p className="font-mono text-gray-400 text-xs">ID: 8492-AX</p>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <button
+                        onClick={() => setProfileViewMode('interfaceSettings')}
+                        className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group"
+                      >
+                        <Settings className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" />
+                        Interface Settings
+                      </button>
+                      <button
+                        onClick={() => setProfileViewMode('missionLogs')}
+                        className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group"
+                      >
+                        <FileText className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" />
+                        Mission Logs
+                      </button>
                     </div>
-                  </div>
-                  <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mb-1">
-                    <div className="bg-gradient-to-r from-neon-blue to-neon-pink h-full w-[35%]"></div>
-                  </div>
-                  <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-neon-blue">SOMAS: {totalSomas.toLocaleString()}</span>
-                    <span className="text-gray-500">NEXT: LEVEL 2</span>
-                  </div>
-                </div>
 
-                {/* Menu Items */}
-                <div className="py-2">
-                  <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
-                    <Settings className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" />
-                    Interface Settings
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
-                    <Database className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" />
-                    Data Archives
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-gray-300 hover:bg-neon-blue/10 hover:text-neon-blue flex items-center gap-3 transition-colors border-l-2 border-transparent hover:border-neon-blue group">
-                    <FileText className="w-4 h-4 text-gray-500 group-hover:text-neon-blue" />
-                    Mission Logs
-                  </button>
-                </div>
+                    {/* Footer */}
+                    <div className="border-t border-white/10 py-2 bg-black/40">
+                      <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-red-400 hover:bg-red-900/20 flex items-center gap-3 transition-colors group">
+                        <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        Terminate Link
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between gap-3 shrink-0">
+                      <button
+                        onClick={() => setProfileViewMode('menu')}
+                        className="text-[11px] font-mono tracking-wider text-neon-blue hover:text-white transition-colors border border-neon-blue/40 px-2 py-1 rounded"
+                      >
+                        BACK
+                      </button>
+                      <div className="text-right">
+                        <p className="font-orbitron text-white text-sm tracking-wide">
+                          {profileViewMode === 'interfaceSettings' ? 'INTERFACE SETTINGS' : 'MISSION LOGS'}
+                        </p>
+                        <p className="font-mono text-gray-500 text-[10px]">ID: 8492-AX</p>
+                      </div>
+                      <button
+                        onClick={closeProfilePanel}
+                        className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                {/* Footer */}
-                <div className="border-t border-white/10 py-2 bg-black/40">
-                  <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-red-400 hover:bg-red-900/20 flex items-center gap-3 transition-colors group">
-                    <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    Terminate Link
-                  </button>
-                </div>
+                    <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar">
+                      {profileViewMode === 'interfaceSettings' ? (
+                        <>
+                          <div className="text-[10px] font-mono tracking-widest text-neon-blue uppercase">User Specifications</div>
+                          <div className="space-y-2">
+                            <div className="bg-white/5 border border-white/10 rounded px-3 py-2">
+                              <p className="text-[10px] font-mono text-gray-500 uppercase">Displayed User Name</p>
+                              <p className="text-sm font-rajdhani text-white">{profileSpecifications.displayedUserName}</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded px-3 py-2">
+                              <p className="text-[10px] font-mono text-gray-500 uppercase">School Name</p>
+                              <p className="text-sm font-rajdhani text-white">{profileSpecifications.schoolName}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-white/5 border border-white/10 rounded px-3 py-2">
+                                <p className="text-[10px] font-mono text-gray-500 uppercase">Birth Year</p>
+                                <p className="text-sm font-rajdhani text-white">{profileSpecifications.birthYear}</p>
+                              </div>
+                              <div className="bg-white/5 border border-white/10 rounded px-3 py-2">
+                                <p className="text-[10px] font-mono text-gray-500 uppercase">Grade</p>
+                                <p className="text-sm font-rajdhani text-white">{profileSpecifications.grade}</p>
+                              </div>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded px-3 py-2">
+                              <p className="text-[10px] font-mono text-gray-500 uppercase mb-2">User Interface Language</p>
+                              <div className="flex flex-wrap gap-2">
+                                {languageOptions.map((language) => (
+                                  <span
+                                    key={language}
+                                    className={`px-2 py-1 rounded text-[11px] font-mono border ${language === profileSpecifications.uiLanguage ? 'bg-neon-blue/20 text-neon-blue border-neon-blue/50' : 'bg-black/40 text-gray-400 border-white/20'}`}
+                                  >
+                                    {language}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] font-mono tracking-widest text-neon-blue uppercase">Mission Checklist</div>
+                          <div className="space-y-2">
+                            {missionChecklist.map((mission) => (
+                              <div key={mission.id} className="bg-white/5 border border-white/10 rounded px-3 py-3 flex items-start gap-3">
+                                <span className={`mt-0.5 w-4 h-4 rounded-sm border flex items-center justify-center text-[10px] ${mission.isComplete ? 'border-green-400 bg-green-400/20 text-green-300' : 'border-gray-500 text-transparent'}`}>
+                                  ✓
+                                </span>
+                                <div>
+                                  <p className="text-sm font-rajdhani text-white leading-tight">{mission.title}</p>
+                                  <p className="text-[10px] font-mono text-gray-500 mt-1">{mission.progress}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="border-t border-white/10 py-2 bg-black/40 shrink-0">
+                      <button className="w-full text-left px-4 py-3 text-sm font-rajdhani text-red-400 hover:bg-red-900/20 flex items-center gap-3 transition-colors group">
+                        <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        Terminate Link
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
