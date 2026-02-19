@@ -1,6 +1,6 @@
 import React from 'react';
-import { NetworkStructure, NeuralNode as NeuralNodeType } from '../types';
-import { getNodePosition } from '../utils/questionLoader';
+import { NetworkStructure, NeuralNode as NeuralNodeType, QuestionProgress } from '../types';
+import { getNodePosition, getVisibleLabelNodeIds } from '../utils/questionLoader';
 import NeuralNode from './NeuralNode';
 import SynapseConnections from './SynapseConnections';
 import CharacterAnchors from './CharacterAnchors';
@@ -10,14 +10,18 @@ interface NeuralNetworkGridProps {
     onNodeClick: (node: NeuralNodeType) => void;
     worldColor: string;
     selectedNodeId: number | null;
+    questionProgressMap: Record<number, QuestionProgress>;
 }
 
 const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
     network,
     onNodeClick,
     worldColor,
-    selectedNodeId
+    selectedNodeId,
+    questionProgressMap
 }) => {
+    const visibleLabelNodeIds = getVisibleLabelNodeIds(network, questionProgressMap);
+
     return (
         <group>
             {/* Synapse Connections */}
@@ -27,6 +31,8 @@ const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
             {network.nodes.map((node) => {
                 const columnSize = network.columnSizes[node.column - 1];
                 const position = getNodePosition(node.column, node.row, columnSize);
+                const progress = questionProgressMap[node.questionId];
+                const showLabel = visibleLabelNodeIds.has(node.id);
 
                 return (
                     <NeuralNode
@@ -36,6 +42,8 @@ const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
                         onClick={() => onNodeClick(node)}
                         worldColor={worldColor}
                         isSelected={node.id === selectedNodeId}
+                        questionProgress={progress}
+                        showLabel={showLabel}
                     />
                 );
             })}

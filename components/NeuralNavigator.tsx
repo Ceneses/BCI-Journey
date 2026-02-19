@@ -377,6 +377,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                         onNodeClick={handleNodeSelect}
                         worldColor={world?.color || '#00f3ff'}
                         selectedNodeId={selectedNode?.id ?? null}
+                        questionProgressMap={loadProgress(worldId).questionProgress || {}}
                     />
 
                     <Stars radius={150} depth={100} count={5000} factor={4} saturation={0} fade speed={0.5} />
@@ -423,12 +424,20 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                     </div>
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-neon-blue shadow-[0_0_10px_#00f3ff] animate-pulse"></div>
-                            <span className="text-gray-300">Unlocked - Click to explore</span>
+                            <div className="w-3 h-3 rounded-full bg-neon-blue shadow-[0_0_10px_#00f3ff]"></div>
+                            <span className="text-gray-300">Listen ring - lights when Listen done</span>
                         </div>
                         <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-electric-gold shadow-[0_0_10px_#ffd700]"></div>
+                            <span className="text-gray-300">Talk ring - lights when Talk done</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_10px_#9d00ff]"></div>
+                            <span className="text-gray-300">Read ring - lights when Summary read</span>
+                        </div>
+                        <div className="flex items-center gap-2 pt-1 border-t border-white/10">
                             <div className="w-3 h-3 rounded-full bg-neon-pink shadow-[0_0_10px_#ff00ff]"></div>
-                            <span className="text-gray-300">Completed</span>
+                            <span className="text-gray-300">Solid glow - Quiz passed (activated)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-gray-600"></div>

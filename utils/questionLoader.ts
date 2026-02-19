@@ -84,6 +84,43 @@ export function mapQuestionsToNetwork(questions: Question[]): NetworkStructure {
 }
 
 /**
+ * Get node IDs in the next column that are connected to the given node.
+ * Matches the connection logic used in SynapseConnections.
+ */
+export function getConnectedNodeIds(network: NetworkStructure, node: NeuralNode): number[] {
+    if (node.column >= 10) return [];
+    const nextColumnNodes = network.nodes.filter((n) => n.column === node.column + 1);
+    return nextColumnNodes
+        .filter((_, idx) => idx % 2 === 0 || nextColumnNodes.length <= 4)
+        .map((n) => n.id);
+}
+
+/**
+ * Get the set of node IDs whose question labels should be visible.
+ * Initially only the first node; after activating a node, reveal it and its connected neighbors.
+ */
+export function getVisibleLabelNodeIds(
+    network: NetworkStructure,
+    questionProgressMap: Record<number, { isActivated?: boolean }>
+): Set<number> {
+    const visible = new Set<number>();
+    const firstNode = network.nodes.find((n) => n.column === 1);
+    if (firstNode) {
+        visible.add(firstNode.id);
+    }
+    for (const node of network.nodes) {
+        const progress = questionProgressMap[node.questionId];
+        if (progress?.isActivated) {
+            visible.add(node.id);
+            for (const id of getConnectedNodeIds(network, node)) {
+                visible.add(id);
+            }
+        }
+    }
+    return visible;
+}
+
+/**
  * Get the position for a node in 3D space
  * Returns {x, y, z} coordinates for Three.js
  */

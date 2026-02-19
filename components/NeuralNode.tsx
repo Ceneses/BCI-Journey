@@ -1,8 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import * as THREE from 'three';
 import { Mesh } from 'three';
-import { NeuralNode as NeuralNodeType } from '../types';
+import { NeuralNode as NeuralNodeType, QuestionProgress } from '../types';
+
+const RING_COLORS = {
+    listen: '#00f3ff',
+    talk: '#ffd700',
+    read: '#9d00ff'
+};
 
 interface NeuralNodeProps {
     node: NeuralNodeType;
@@ -10,19 +17,25 @@ interface NeuralNodeProps {
     onClick: () => void;
     worldColor: string;
     isSelected: boolean;
+    questionProgress?: QuestionProgress | null;
+    showLabel?: boolean;
 }
 
-const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldColor, isSelected }) => {
+const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldColor, isSelected, questionProgress, showLabel = false }) => {
     const meshRef = useRef<Mesh>(null);
     const [hovered, setHovered] = useState(false);
 
-    // Pulsing animation for active or selected nodes
+    const hasListened = questionProgress?.hasListened ?? false;
+    const hasTalked = questionProgress?.hasTalked ?? false;
+    const hasReadSummary = questionProgress?.hasReadSummary ?? false;
+    const isActivated = questionProgress?.isActivated ?? false;
+
     useFrame((state) => {
         if (meshRef.current) {
             if (isSelected) {
                 const scale = 1.15 + Math.sin(state.clock.elapsedTime * 3) * 0.08;
                 meshRef.current.scale.setScalar(scale);
-            } else if (node.state === 'active') {
+            } else if (node.state === 'active' || isActivated) {
                 const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
                 meshRef.current.scale.setScalar(scale);
             } else {
@@ -31,16 +44,17 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
         }
     });
 
-    // Determine node appearance based on state
     const getNodeColor = () => {
         if (!node.isUnlocked) return '#333333';
-        if (isSelected) return '#ffffff'; // white when selected
+        if (isActivated) return '#ff00ff';
+        if (isSelected) return '#ffffff';
         if (node.state === 'active') return worldColor;
         return hovered ? worldColor : '#666666';
     };
 
     const getIntensity = () => {
         if (!node.isUnlocked) return 0.1;
+        if (isActivated) return 2.5;
         if (isSelected) return 3.0;
         if (node.state === 'active') return 2.0;
         return hovered ? 1.0 : 0.5;
@@ -50,6 +64,12 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
         if (!node.isUnlocked) return 0.3;
         if (isSelected) return 1.0;
         return 0.8;
+    };
+
+    const getRingOpacity = (completed: boolean) => {
+        if (!node.isUnlocked) return 0.15;
+        if (isActivated) return 0.8;
+        return completed ? 0.9 : 0.25;
     };
 
     return (
@@ -87,16 +107,43 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
                 clearcoatRoughness={0.1}
             />
 
-            {/* Glow ring for unlocked nodes */}
+            {/* 3 mode rings: Listen (inner), Talk (middle), Read (outer) */}
             {node.isUnlocked && (
-                <mesh scale={isSelected ? 1.5 : 1.3}>
-                    <ringGeometry args={[0.35, 0.4, 32]} />
-                    <meshBasicMaterial
-                        color={isSelected ? '#ffffff' : getNodeColor()}
-                        transparent
-                        opacity={isSelected ? 0.6 : node.state === 'active' ? 0.4 : 0.2}
-                    />
-                </mesh>
+                <>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                        <ringGeometry args={[0.32, 0.35, 32]} />
+                        <meshBasicMaterial
+                            color={RING_COLORS.listen}
+                            transparent
+                            opacity={getRingOpacity(hasListened)}
+                            side={THREE.DoubleSide}
+                            blending={THREE.AdditiveBlending}
+                            depthWrite={false}
+                        />
+                    </mesh>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                        <ringGeometry args={[0.37, 0.40, 32]} />
+                        <meshBasicMaterial
+                            color={RING_COLORS.talk}
+                            transparent
+                            opacity={getRingOpacity(hasTalked)}
+                            side={THREE.DoubleSide}
+                            blending={THREE.AdditiveBlending}
+                            depthWrite={false}
+                        />
+                    </mesh>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                        <ringGeometry args={[0.42, 0.45, 32]} />
+                        <meshBasicMaterial
+                            color={RING_COLORS.read}
+                            transparent
+                            opacity={getRingOpacity(hasReadSummary)}
+                            side={THREE.DoubleSide}
+                            blending={THREE.AdditiveBlending}
+                            depthWrite={false}
+                        />
+                    </mesh>
+                </>
             )}
 
             {/* Lock indicator */}
@@ -108,7 +155,8 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
             )}
         </mesh>
 
-            {/* Always-visible question label for map readability, especially on touch devices */}
+            {/* Question label - only shown for first node and neighbors of activated nodes (reduces lag) */}
+            {showLabel && (
             <Html position={[0, 0.6, 0]} center distanceFactor={12} zIndexRange={[100, 0]}>
                 <div
                     className={`
@@ -133,6 +181,7 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
                     </span>
                 </div>
             </Html>
+            )}
         </group>
     );
 };
