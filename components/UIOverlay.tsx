@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, User as UserIcon, Settings, LogOut, FileText, ChevronDown, Zap, Beaker } from 'lucide-react';
-import { WorldData, GeneratedContent } from '../types';
-import { generateWorldBriefing } from '../services/geminiService';
+import { Brain, Cpu, Lock, X, PlayCircle, Activity, Scan, Database, Settings, LogOut, FileText, ChevronDown, Zap, Beaker, ChevronUp } from 'lucide-react';
+import { WorldData } from '../types';
 import { getTotalSomas } from '../utils/progressManager';
 
 interface UIOverlayProps {
   selectedWorld: WorldData | null;
+  isPanelExpanded: boolean;
+  onTogglePanel: () => void;
   onClose: () => void;
   onEnterSimulation: (world: WorldData) => void;
+  onGuideNextWorld: () => void;
+  nextWorldToExplore: WorldData;
 }
 
 const TypewriterText: React.FC<{ text: string; delay?: number; className?: string }> = ({ text, delay = 15, className = "" }) => {
@@ -31,28 +34,36 @@ const TypewriterText: React.FC<{ text: string; delay?: number; className?: strin
   return <span className={className}>{displayedText}<span className="animate-pulse text-neon-blue">_</span></span>;
 };
 
-const DataCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; color?: string }> = ({ title, icon, children, color = "text-neon-blue" }) => (
-  <div className="relative group mt-6">
-    {/* Corner accents */}
-    <div className={`absolute -top-[1px] -left-[1px] w-3 h-3 border-t border-l border-${color === 'text-neon-pink' ? 'neon-pink' : 'neon-blue'} opacity-50 group-hover:opacity-100 transition-opacity`}></div>
-    <div className={`absolute -bottom-[1px] -right-[1px] w-3 h-3 border-b border-r border-${color === 'text-neon-pink' ? 'neon-pink' : 'neon-blue'} opacity-50 group-hover:opacity-100 transition-opacity`}></div>
+const DataCard: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; color?: string; compact?: boolean }> = ({ title, icon, children, color = "text-neon-blue", compact }) => {
+  const borderColor = color === 'text-neon-pink' ? 'border-neon-pink' : 'border-neon-blue';
+  return (
+  <div className={`relative group ${compact ? 'mt-2' : 'mt-6'}`}>
+    <div className={`absolute -top-[1px] -left-[1px] w-2.5 h-2.5 border-t border-l ${borderColor} opacity-50 group-hover:opacity-100 transition-opacity`} />
+    <div className={`absolute -bottom-[1px] -right-[1px] w-2.5 h-2.5 border-b border-r ${borderColor} opacity-50 group-hover:opacity-100 transition-opacity`} />
 
-    <div className="bg-white/5 border border-white/10 p-5 rounded-sm backdrop-blur-sm hover:bg-white/10 transition-colors duration-300">
-      <div className="absolute -top-3 left-4 flex items-center gap-2 bg-black px-2 border border-white/20 rounded-full group-hover:border-white/40 transition-colors">
-        <span className={`${color} w-3 h-3`}>{icon}</span>
+    <div className={`bg-white/5 border border-white/10 rounded-sm backdrop-blur-sm hover:bg-white/10 transition-colors duration-300 ${compact ? 'p-3' : 'p-5'}`}>
+      <div className={`absolute flex items-center gap-2 bg-black border border-white/20 rounded-full group-hover:border-white/40 transition-colors ${compact ? '-top-2 left-3 px-1.5' : '-top-3 left-4 px-2'}`}>
+        <span className={color}>{icon}</span>
         <span className="text-[10px] font-orbitron tracking-widest text-gray-400 uppercase">{title}</span>
       </div>
-      <div className="pt-2">
+      <div className={compact ? 'pt-1.5' : 'pt-2'}>
         {children}
       </div>
     </div>
   </div>
-);
+  );
+};
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSimulation }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({
+  selectedWorld,
+  isPanelExpanded,
+  onTogglePanel,
+  onClose,
+  onEnterSimulation,
+  onGuideNextWorld,
+  nextWorldToExplore
+}) => {
   const navigate = useNavigate();
-  const [content, setContent] = useState<GeneratedContent | null>(null);
-  const [loading, setLoading] = useState(false);
   const [totalSomas, setTotalSomas] = useState(0);
 
   // Profile Dropdown State
@@ -60,16 +71,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (selectedWorld) {
-      setLoading(true);
-      setContent(null);
-      generateWorldBriefing(selectedWorld.region, selectedWorld.description)
-        .then(data => {
-          setContent(data);
-          setLoading(false);
-        });
-    }
-
     // Load Total Somas (from all worlds or just accumulated in general?)
     // currently stored per world in progressManager... 
     // Wait, progressManager `loadProgress` takes `worldId`.
@@ -210,13 +211,16 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
         </header>
 
         <footer className="flex justify-between items-end">
-          <div className="bg-black/80 p-4 border-l-2 border-neon-blue backdrop-blur-md rounded-r-lg">
-            <div className="text-xs text-gray-400 font-mono leading-relaxed">
-              <span className="text-neon-blue">SYS.STATUS:</span> ONLINE<br />
-              <span className="text-neon-blue">NODES DETECTED:</span> 10<br />
-              <span className="text-neon-blue">RENDER ENGINE:</span> ACTIVE
-            </div>
-          </div>
+          <button
+            onClick={onGuideNextWorld}
+            className="pointer-events-auto text-left group bg-black/85 p-4 border border-neon-blue/40 backdrop-blur-md rounded-lg hover:border-neon-blue hover:bg-neon-blue/10 transition-all duration-300 w-[300px] shadow-[0_0_18px_rgba(0,243,255,0.15)]"
+          >
+            <p className="text-[10px] font-mono text-neon-blue tracking-widest uppercase">Navigation Support</p>
+            <p className="text-sm font-orbitron text-white mt-1">Go To Next World</p>
+            <p className="text-xs font-rajdhani text-gray-300 mt-2">
+              Suggested starting point: <span className="text-neon-blue">{nextWorldToExplore.id}. {nextWorldToExplore.region}</span>
+            </p>
+          </button>
 
           {/* BCI Lab shortcut */}
           <button
@@ -248,168 +252,118 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ selectedWorld, onClose, onEnterSi
     );
   }
 
-  // Side Panel for Selected World
+  // Compact panel for Selected World - bottom-right corner, collapsible
   return (
-    <div className="absolute top-0 right-0 w-full md:w-[500px] h-full bg-cyber-black/95 border-l border-neon-blue/30 backdrop-blur-xl p-8 z-20 transform transition-transform duration-300 flex flex-col shadow-[-10px_0_40px_rgba(0,243,255,0.15)]">
-
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6 border-b border-white/10 pb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-neon-blue px-1 border border-neon-blue/30 rounded">ID-{selectedWorld.id.toString().padStart(3, '0')}</span>
-            <span className="text-xs font-mono text-gray-500">REGION_LOCK: {selectedWorld.isLocked ? "ACTIVE" : "DISABLED"}</span>
+    <div className="absolute bottom-0 right-0 w-[min(100%,320px)] max-h-[min(85vh,420px)] bg-cyber-black/95 border border-t border-l border-neon-blue/30 backdrop-blur-xl rounded-tl-xl z-20 flex flex-col shadow-[-10px_-10px_40px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
+      {/* Header - always visible */}
+      <div className="flex justify-between items-center p-3 border-b border-neon-blue/20 bg-black/40 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-neon-blue px-1 border border-neon-blue/30 rounded">ID-{selectedWorld.id.toString().padStart(3, '0')}</span>
+            <span className="text-[10px] font-mono text-gray-500 truncate">REGION_LOCK: {selectedWorld.isLocked ? "ACTIVE" : "DISABLED"}</span>
           </div>
-          <h2 className="text-4xl font-orbitron font-bold text-white uppercase tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+          <h2 className="text-lg font-orbitron font-bold text-white uppercase tracking-wider truncate mt-0.5">
             {selectedWorld.region}
           </h2>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="h-1 w-24 rounded-full" style={{ backgroundColor: selectedWorld.color, boxShadow: `0 0 10px ${selectedWorld.color}` }}></div>
-            <span className="text-xs font-rajdhani text-gray-400 uppercase tracking-widest">{selectedWorld.name}</span>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="h-0.5 w-12 rounded-full shrink-0" style={{ backgroundColor: selectedWorld.color, boxShadow: `0 0 6px ${selectedWorld.color}` }} />
+            <span className="text-[10px] font-rajdhani text-gray-400 uppercase tracking-widest truncate">{selectedWorld.name}</span>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all hover:rotate-90 text-white border border-transparent hover:border-white/20">
-          <X className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <button
+            onClick={onTogglePanel}
+            className="p-1.5 hover:bg-white/10 rounded transition-colors text-white/80 hover:text-white"
+            aria-label={isPanelExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isPanelExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </button>
+          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full transition-all hover:rotate-90 text-white border border-transparent hover:border-white/20">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {/* Connection Status */}
-        <div className="flex items-center justify-between gap-2 mb-8 font-mono text-xs text-neon-blue border-y border-neon-blue/20 py-2 bg-neon-blue/5">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 animate-bounce" />
-            <span>NEURAL LINK: ESTABLISHED</span>
+      {/* Collapsible content */}
+      {isPanelExpanded && (
+        <>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar min-h-0">
+            {/* Connection Status */}
+            <div className="flex items-center justify-between gap-2 font-mono text-[10px] text-neon-blue border-y border-neon-blue/20 py-1.5 bg-neon-blue/5">
+              <div className="flex items-center gap-1.5">
+                <Activity className="w-3 h-3 animate-bounce" />
+                <span>NEURAL LINK: ESTABLISHED</span>
+              </div>
+              <span className="animate-pulse">100%</span>
+            </div>
+
+            {/* Primary Function */}
+            <DataCard title="Primary Function" icon={<Database className="w-2.5 h-2.5" />} compact>
+              <div className="text-white font-rajdhani text-sm leading-relaxed">
+                <TypewriterText text={selectedWorld.description} delay={10} />
+              </div>
+            </DataCard>
+
+            {/* Training Objective */}
+            <DataCard title="Training Objective" icon={<Cpu className="w-2.5 h-2.5" />} color="text-neon-pink" compact>
+              <div className="text-neon-pink font-rajdhani font-bold text-sm flex items-start gap-2">
+                <span className="mt-0.5">{'>'}</span>
+                <TypewriterText text={selectedWorld.learningObjective} delay={20} />
+              </div>
+            </DataCard>
+
+            {/* Mission Protocol - compact */}
+            <div className="bg-gradient-to-r from-neon-blue/10 to-transparent p-3 rounded border-l-2 border-neon-blue">
+              <h4 className="text-[10px] font-orbitron text-neon-blue uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <Activity className="w-3 h-3" /> Mission Protocol
+              </h4>
+              <div className="space-y-1.5 font-mono text-[9px] text-gray-300">
+                <p><span className="text-white font-bold">1. CONNECT:</span> Listen & Talk</p>
+                <p><span className="text-white font-bold">2. ANALYZE:</span> Lesson Summary</p>
+                <p><span className="text-neon-pink font-bold">3. ACTIVATE:</span> Neural Quiz</p>
+              </div>
+              <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                <span className="text-gray-400 text-[9px]">Reward:</span>
+                <span className="text-electric-gold font-bold font-orbitron text-xs flex items-center gap-1">
+                  <Zap className="w-2.5 h-2.5" /> 17M SOMAS
+                </span>
+              </div>
+            </div>
           </div>
-          <span className="animate-pulse">100% SIGNAL</span>
-        </div>
 
-        {/* Static Info Cards with Typewriter Effect */}
-        <div className="space-y-6">
-
-          <DataCard title="Primary Function" icon={<Database className="w-3 h-3" />}>
-            <div className="text-white font-rajdhani text-lg leading-relaxed min-h-[4rem]">
-              <TypewriterText text={selectedWorld.description} delay={10} />
-            </div>
-          </DataCard>
-
-          <DataCard title="Training Objective" icon={<Cpu className="w-3 h-3" />} color="text-neon-pink">
-            <div className="text-neon-pink font-rajdhani font-bold text-lg flex items-start gap-2 min-h-[4rem]">
-              <span className="mt-1">{'>'}</span>
-              <TypewriterText text={selectedWorld.learningObjective} delay={20} />
-            </div>
-          </DataCard>
-
-          {/* Mission Protocol / Somas Guide */}
-          <div className="bg-gradient-to-r from-neon-blue/10 to-transparent p-5 rounded border-l-2 border-neon-blue relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Scan className="w-12 h-12 text-neon-blue" />
-            </div>
-
-            <h4 className="text-neon-blue font-orbitron text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4" /> Mission Protocol
-            </h4>
-
-            <div className="space-y-3 font-mono text-[10px] md:text-xs text-gray-300">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-black border border-gray-600 flex items-center justify-center text-gray-400">1</div>
-                <p><span className="text-white font-bold">CONNECT:</span> Listen to & Talk with Avatars.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-black border border-gray-600 flex items-center justify-center text-gray-400">2</div>
-                <p><span className="text-white font-bold">ANALYZE:</span> Read the Lesson Summary.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-black border border-neon-pink flex items-center justify-center text-neon-pink shadow-[0_0_10px_rgba(255,0,255,0.3)]">3</div>
-                <p><span className="text-neon-pink font-bold">ACTIVATE:</span> Pass the Neural Quiz.</p>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-              <span className="text-gray-400 uppercase text-[10px] tracking-wider">Reward Value:</span>
-              <span className="text-electric-gold font-bold font-orbitron text-sm md:text-base drop-shadow-[0_0_5px_rgba(255,215,0,0.5)] flex items-center gap-2">
-                <Zap className="w-3 h-3" /> 17,000,000 SOMAS
+          {/* Action Area */}
+          <div className="p-3 border-t border-white/10 shrink-0">
+            <button
+              onClick={() => {
+                if (!selectedWorld.isLocked) {
+                  const worldName = selectedWorld.region.toLowerCase().replace(/\s+/g, '-');
+                  navigate(`/journey/${worldName}`);
+                }
+              }}
+              className={`group relative w-full py-3 px-4 rounded font-orbitron font-bold tracking-widest text-sm flex items-center justify-center gap-2 transition-all duration-300 overflow-hidden ${selectedWorld.isLocked
+                ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'
+                : 'bg-neon-blue text-black hover:text-white border border-neon-blue shadow-[0_0_12px_rgba(0,243,255,0.4)]'
+                }`}
+            >
+              {!selectedWorld.isLocked && (
+                <div className="absolute inset-0 bg-black translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0" />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                {selectedWorld.isLocked ? (
+                  <><Lock className="w-4 h-4" /> ACCESS DENIED</>
+                ) : (
+                  <><PlayCircle className="w-4 h-4 group-hover:animate-pulse" /> ENTER SIMULATION</>
+                )}
               </span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* AI Generated Content */}
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <h4 className="text-xs font-orbitron text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Scan className="w-4 h-4" /> Analyzed Intel
-          </h4>
-
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-4 bg-white/5 rounded border border-dashed border-white/20">
-              <div className="w-8 h-8 border-2 border-t-neon-blue border-r-transparent border-b-neon-pink border-l-transparent rounded-full animate-spin"></div>
-              <p className="font-mono text-xs text-neon-blue animate-pulse">DECRYPTING ARCHIVES...</p>
-            </div>
-          ) : content ? (
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-white/5 to-transparent p-4 rounded border-l-2 border-electric-gold">
-                <h3 className="text-electric-gold font-orbitron text-lg mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-electric-gold rounded-full animate-pulse"></span>
-                  {content.title}
-                </h3>
-                <p className="font-rajdhani text-gray-300 text-sm leading-relaxed">{content.briefing}</p>
-              </div>
-
-              <div className="bg-matrix-green/5 p-4 rounded border border-matrix-green/20">
-                <h4 className="text-matrix-green font-bold text-xs uppercase mb-2 flex items-center gap-2">
-                  <span className="bg-matrix-green text-black px-1 rounded text-[10px]">FACT</span>
-                  Did You Know?
-                </h4>
-                <p className="text-sm font-mono text-green-100/90">{content.funFact}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-red-500 font-mono text-xs border border-red-500/30 p-4 rounded bg-red-500/5">
-              ERROR: DATA CORRUPTION DETECTED. RETRY CONNECTION.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Action Area */}
-      <div className="mt-6 pt-6 border-t border-white/10">
-        <button
-          onClick={() => {
-            if (!selectedWorld.isLocked) {
-              const worldName = selectedWorld.region.toLowerCase().replace(/\s+/g, '-');
-              navigate(`/journey/${worldName}`);
-            }
-          }}
-          className={`group relative w-full py-4 px-6 rounded-sm font-orbitron font-bold tracking-widest text-lg flex items-center justify-center gap-3 transition-all duration-300 overflow-hidden ${selectedWorld.isLocked
-            ? 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'
-            : 'bg-neon-blue text-black hover:text-white border border-neon-blue shadow-[0_0_15px_rgba(0,243,255,0.4)]'
-            }`}
-        >
-          {/* Animated Background hover effect for button */}
-          {!selectedWorld.isLocked && (
-            <div className="absolute inset-0 bg-black translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0"></div>
-          )}
-
-          <span className="relative z-10 flex items-center gap-2">
-            {selectedWorld.isLocked ? (
-              <>
-                <Lock className="w-5 h-5" /> ACCESS DENIED
-              </>
-            ) : (
-              <>
-                <PlayCircle className="w-5 h-5 group-hover:animate-pulse" /> ENTER SIMULATION
-              </>
+            </button>
+            {selectedWorld.isLocked && (
+              <p className="text-center mt-2 text-[9px] text-gray-500 font-mono">
+                Required: Level {selectedWorld.id - 1} Clearance
+              </p>
             )}
-          </span>
-        </button>
-        {selectedWorld.isLocked && (
-          <div className="flex justify-center mt-3">
-            <span className="text-[10px] text-gray-500 font-mono uppercase border border-gray-800 px-2 py-1 rounded bg-black">
-              Required: Level {selectedWorld.id - 1} Clearance
-            </span>
           </div>
-        )}
-      </div>
-
+        </>
+      )}
     </div>
   );
 };

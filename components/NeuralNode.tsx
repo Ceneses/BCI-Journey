@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import { Mesh } from 'three';
 import { NeuralNode as NeuralNodeType } from '../types';
 
@@ -52,9 +53,9 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
     };
 
     return (
+        <group position={[position.x, position.y, position.z]}>
         <mesh
             ref={meshRef}
-            position={[position.x, position.y, position.z]}
             onClick={(e) => {
                 e.stopPropagation();
                 if (node.isUnlocked) {
@@ -106,6 +107,33 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
                 </mesh>
             )}
         </mesh>
+
+            {/* Always-visible question label for map readability, especially on touch devices */}
+            <Html position={[0, 0.6, 0]} center distanceFactor={12} zIndexRange={[100, 0]}>
+                <div
+                    className={`
+                        px-2 py-1 rounded backdrop-blur-md text-[10px] font-orbitron max-w-[140px] transition-all duration-300 transform
+                        ${isSelected ? 'bg-black border-2 scale-110' : hovered ? 'bg-black/90 border scale-105' : 'bg-black/70 border scale-100'}
+                    `}
+                    style={{
+                        borderColor: worldColor,
+                        boxShadow: isSelected ? `0 0 20px ${worldColor}` : hovered ? `0 0 12px ${worldColor}` : `0 0 5px ${worldColor}`,
+                        opacity: isSelected ? 1 : hovered ? 0.98 : 0.88
+                    }}
+                >
+                    <span
+                        className="block text-center truncate"
+                        style={{
+                            color: worldColor,
+                            textShadow: isSelected ? `0 0 10px ${worldColor}` : 'none',
+                            fontWeight: isSelected ? 'bold' : 'normal'
+                        }}
+                    >
+                        {node.question}
+                    </span>
+                </div>
+            </Html>
+        </group>
     );
 };
 

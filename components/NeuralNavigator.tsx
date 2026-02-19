@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import { NetworkStructure, NeuralNode, WorldQuestions, UserProgress, QuestionProgress } from '../types';
 import { generateLessonSummary, generateNeuronQuiz } from '../services/geminiService';
-import { loadWorldQuestions, mapQuestionsToNetwork } from '../utils/questionLoader';
+import { loadWorldQuestions, mapQuestionsToNetwork, getNodePosition } from '../utils/questionLoader';
 import { loadProgress, saveProgress, markQuestionComplete, isNodeUnlocked, isQuestionComplete, getCompletionPercentage, updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
 import { WORLDS } from '../constants';
 import NeuralNetworkGrid from './NeuralNetworkGrid';
@@ -14,7 +15,52 @@ import SimulationMode from './SimulationMode';
 import LessonSummary from './LessonSummary';
 import NeuronActivationQuiz from './NeuronActivationQuiz';
 import { slugify } from '../utils/stringUtils';
-import { ArrowLeft, Mouse, Hand, Info, Lightbulb, Lock, Unlock, CheckCircle2, Circle, BookOpen, Award, Zap } from 'lucide-react';
+import { ArrowLeft, Mouse, Hand, Info, Lightbulb, Lock, Unlock, CheckCircle2, Circle, BookOpen, Award, Zap, ChevronDown, ChevronUp, X } from 'lucide-react';
+
+type OrbitControlsRef = { target: THREE.Vector3; update: () => void } | null;
+
+const DEFAULT_CAMERA_POSITION = new THREE.Vector3(6, 1, 30);
+const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0, 0);
+const SELECTED_NODE_CAMERA_OFFSET = new THREE.Vector3(0.5, 0.3, 8);
+
+const CameraFocusController: React.FC<{
+    selectedNodePosition: { x: number; y: number; z: number } | null;
+    controlsRef: React.RefObject<OrbitControlsRef>;
+}> = ({ selectedNodePosition, controlsRef }) => {
+    const { camera } = useThree();
+    const targetPositionRef = useRef<THREE.Vector3>(DEFAULT_CAMERA_POSITION.clone());
+    const targetLookAtRef = useRef<THREE.Vector3>(DEFAULT_CAMERA_TARGET.clone());
+    const isAnimatingRef = useRef(false);
+
+    useEffect(() => {
+        if (selectedNodePosition) {
+            const pos = new THREE.Vector3(selectedNodePosition.x, selectedNodePosition.y, selectedNodePosition.z);
+            targetLookAtRef.current.copy(pos);
+            targetPositionRef.current.copy(pos.clone().add(SELECTED_NODE_CAMERA_OFFSET));
+        } else {
+            targetLookAtRef.current.copy(DEFAULT_CAMERA_TARGET);
+            targetPositionRef.current.copy(DEFAULT_CAMERA_POSITION);
+        }
+        isAnimatingRef.current = true;
+    }, [selectedNodePosition]);
+
+    useFrame(() => {
+        const controls = controlsRef.current;
+        if (!controls || !isAnimatingRef.current) return;
+
+        camera.position.lerp(targetPositionRef.current, 0.08);
+        controls.target.lerp(targetLookAtRef.current, 0.1);
+        controls.update();
+
+        const positionSettled = camera.position.distanceTo(targetPositionRef.current) < 0.05;
+        const targetSettled = controls.target.distanceTo(targetLookAtRef.current) < 0.05;
+        if (positionSettled && targetSettled) {
+            isAnimatingRef.current = false;
+        }
+    });
+
+    return null;
+};
 
 interface NeuralNavigatorProps {
     worldId: number;
@@ -24,10 +70,12 @@ interface NeuralNavigatorProps {
 
 const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuestionSlug, initialMode }) => {
     const navigate = useNavigate();
+    const controlsRef = useRef<OrbitControlsRef>(null);
     const [loading, setLoading] = useState(true);
     const [showTeaser, setShowTeaser] = useState(true);
     const [network, setNetwork] = useState<NetworkStructure | null>(null);
     const [selectedNode, setSelectedNode] = useState<NeuralNode | null>(null);
+    const [isPanelExpanded, setIsPanelExpanded] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showSimulation, setShowSimulation] = useState(false);
     const [simulationMode, setSimulationMode] = useState<'listen' | 'talk' | null>(null);
@@ -42,6 +90,15 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
     const playNodeSelectSound = (ctx: any) => { /* Play sound logic */ };
 
     const world = WORLDS.find(w => w.id === worldId);
+
+    const nextNodeToExplore = network
+        ? network.nodes.find((node) => node.isUnlocked && !isQuestionComplete(worldId, node.questionId))
+            ?? network.nodes.find((node) => node.isUnlocked)
+        : null;
+
+    const selectedNodePosition = selectedNode && network
+        ? getNodePosition(selectedNode.column, selectedNode.row, network.columnSizes[selectedNode.column - 1])
+        : null;
 
     useEffect(() => {
         loadQuestions();
@@ -161,16 +218,25 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
     const handleNodeSelect = (node: NeuralNode) => {
         if (!node.isUnlocked) return;
 
-        // Play selection sound
         if (audioContext) {
             playNodeSelectSound(audioContext);
         }
 
-        // Use local state only — no URL navigation.
-        // URL changes only happen when the user picks a mode (listen/talk/summary/quiz).
-        setSelectedNode(node);
-        if (world) {
-            setCurrentQuestionProgress(getQuestionProgress(world.id, node.questionId));
+        if (selectedNode?.id === node.id) {
+            setIsPanelExpanded((prev) => !prev);
+        } else {
+            setSelectedNode(node);
+            setIsPanelExpanded(true);
+            if (world) {
+                setCurrentQuestionProgress(getQuestionProgress(world.id, node.questionId));
+            }
+        }
+    };
+
+    const handleGuideToNextNode = () => {
+        if (nextNodeToExplore) {
+            handleNodeSelect(nextNodeToExplore);
+            setIsPanelExpanded(true);
         }
     };
 
@@ -300,6 +366,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                 <Canvas gl={{ antialias: true, alpha: false }}>
                     <color attach="background" args={['#050505']} />
                     <PerspectiveCamera makeDefault position={[6, 1, 30]} fov={60} />
+                    <CameraFocusController selectedNodePosition={selectedNodePosition} controlsRef={controlsRef} />
 
                     <ambientLight intensity={0.3} />
                     <pointLight position={[10, 10, 10]} intensity={1} color="#00f3ff" />
@@ -315,6 +382,8 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                     <Stars radius={150} depth={100} count={5000} factor={4} saturation={0} fade speed={0.5} />
 
                     <OrbitControls
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        ref={controlsRef as any}
                         enablePan={true}
                         minDistance={5}
                         maxDistance={200}
@@ -384,6 +453,29 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                     <div className="text-xs font-rajdhani text-orange-500">
                         Digital Engine
                     </div>
+                </div>
+            </div>
+
+            {/* Footer - Navigation Support */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-4 flex justify-between items-end pointer-events-none">
+                <div className="pointer-events-auto">
+                    <button
+                        onClick={handleGuideToNextNode}
+                        className="text-left group bg-black/85 p-4 border border-neon-blue/40 backdrop-blur-md rounded-lg hover:border-neon-blue hover:bg-neon-blue/10 transition-all duration-300 w-[280px] shadow-[0_0_18px_rgba(0,243,255,0.15)]"
+                    >
+                        <p className="text-[10px] font-mono text-neon-blue tracking-widest uppercase">Navigation Support</p>
+                        <p className="text-sm font-orbitron text-white mt-1">Go To Next Node</p>
+                        {nextNodeToExplore && (
+                            <p className="text-xs font-rajdhani text-gray-300 mt-2 truncate">
+                                Suggested: <span className="text-neon-blue">Q#{nextNodeToExplore.questionId} {nextNodeToExplore.question}</span>
+                            </p>
+                        )}
+                    </button>
+                </div>
+                <div className="text-right pointer-events-none">
+                    <p className="text-electric-gold font-orbitron animate-pulse text-lg drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+                        SELECT A NODE TO EXPLORE
+                    </p>
                 </div>
             </div>
 
@@ -497,112 +589,112 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                 />
             )}
 
-            {/* Question Panel */}
+            {/* Question Panel - compact, bottom-right, collapsible (matches World panel) */}
             {selectedNode && !showSummary && (
-                <div className="absolute bottom-0 left-0 right-0 z-20 p-6 bg-cyber-black/90 backdrop-blur-md border-t border-neon-blue/30 animate-in slide-in-from-bottom duration-300">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <div className="text-xs text-gray-400 font-mono mb-1">
-                                    QUESTION #{selectedNode.questionId} | COLUMN {selectedNode.column} | ROW {selectedNode.row + 1}
-                                </div>
-                                <h2 className="text-2xl font-orbitron text-white">
-                                    {selectedNode.question}
-                                </h2>
+                <div className="absolute bottom-0 right-0 w-[min(100%,320px)] max-h-[min(85vh,420px)] bg-cyber-black/95 border border-t border-l border-neon-blue/30 backdrop-blur-xl rounded-tl-xl z-20 flex flex-col shadow-[-10px_-10px_40px_rgba(0,243,255,0.15)] overflow-hidden transition-all duration-300">
+                    {/* Header - always visible */}
+                    <div className="flex justify-between items-center p-3 border-b border-neon-blue/20 bg-black/40 shrink-0">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono text-neon-blue px-1 border border-neon-blue/30 rounded">
+                                    Q#{selectedNode.questionId} | COL {selectedNode.column} | ROW {selectedNode.row + 1}
+                                </span>
                             </div>
+                            <h2 className="text-base font-orbitron font-bold text-white tracking-wider truncate mt-0.5">
+                                {selectedNode.question}
+                            </h2>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                            <button
+                                onClick={() => setIsPanelExpanded((p) => !p)}
+                                className="p-1.5 hover:bg-white/10 rounded transition-colors text-white/80 hover:text-white"
+                                aria-label={isPanelExpanded ? 'Collapse' : 'Expand'}
+                            >
+                                {isPanelExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            </button>
                             <button
                                 onClick={() => {
                                     setSelectedNode(null);
                                     setCurrentQuestionProgress(null);
                                 }}
-                                className="text-gray-400 hover:text-white transition-colors"
+                                className="p-1.5 hover:bg-white/10 rounded-full transition-all hover:rotate-90 text-white border border-transparent hover:border-white/20"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
-                        </div>
-
-                        <div className="mb-3">
-                            <p className="text-gray-400 text-sm font-rajdhani flex items-center gap-2">
-                                <Lightbulb className="w-4 h-4 text-electric-gold" />
-                                Choose how you want to learn:
-                            </p>
-                        </div>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => handleStartSimulation('listen')}
-                                className="flex-1 py-3 bg-neon-blue/20 border border-neon-blue text-neon-blue font-rajdhani hover:bg-neon-blue/30 transition-colors"
-                            >
-                                Listen to Synapse and Spark
-                            </button>
-                            <button
-                                onClick={() => handleStartSimulation('talk')}
-                                className="flex-1 py-3 bg-electric-gold/20 border border-electric-gold text-electric-gold font-rajdhani hover:bg-electric-gold/30 transition-colors"
-                            >
-                                Talk with Synapse and Spark
-                            </button>
-                        </div>
-                        <div className="mt-4">
-                            <button
-                                onClick={() => {
-                                    if (selectedNode && world) {
-                                        updateQuestionProgress(world.id, selectedNode.questionId, 'summary');
-                                        // Refresh progress state locally (though nav will trigger re-render eventually)
-                                        setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
-
-                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                                        const questionSlug = slugify(selectedNode.question);
-                                        navigate(`/journey/${regionSlug}/${questionSlug}/summary`);
-                                    }
-                                }}
-                                className="w-full flex items-center justify-center gap-2 p-3 rounded border border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:text-white transition-all font-mono text-sm uppercase tracking-widest mb-3"
-                            >
-                                <BookOpen className="w-4 h-4" />
-                                Read the summary
-                            </button>
-
-                            {/* Activate Neuron Button */}
-                            <button
-                                onClick={() => {
-                                    if (selectedNode && world) {
-                                        const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
-                                        const questionSlug = slugify(selectedNode.question);
-                                        navigate(`/journey/${regionSlug}/${questionSlug}/quiz`);
-                                    }
-                                }}
-                                disabled={!currentQuestionProgress?.hasListened || !currentQuestionProgress?.hasTalked || !currentQuestionProgress?.hasReadSummary}
-                                className={`w-full flex items-center justify-center gap-2 p-4 rounded border font-orbitron font-bold tracking-widest transition-all ${currentQuestionProgress?.hasListened && currentQuestionProgress?.hasTalked && currentQuestionProgress?.hasReadSummary
-                                    ? 'bg-neon-pink text-black border-neon-pink hover:bg-white hover:scale-105 shadow-[0_0_15px_#ff00ff]'
-                                    : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'
-                                    }`}
-                            >
-                                {currentQuestionProgress?.isActivated ? (
-                                    <>
-                                        <Award className="w-5 h-5" />
-                                        NEURON ACTIVATED
-                                    </>
-                                ) : (
-                                    <>
-                                        <Zap className="w-5 h-5" />
-                                        ACTIVATE NEURON
-                                    </>
-                                )}
-                            </button>
-
-                            {/* Progress Indicators */}
-                            <div className="flex justify-between mt-2 text-[10px] font-mono text-gray-500 uppercase">
-                                <span className={currentQuestionProgress?.hasListened ? 'text-neon-blue' : ''}>
-                                    {currentQuestionProgress?.hasListened ? '[X] LISTEN' : '[ ] LISTEN'}
-                                </span>
-                                <span className={currentQuestionProgress?.hasTalked ? 'text-neon-blue' : ''}>
-                                    {currentQuestionProgress?.hasTalked ? '[X] TALK' : '[ ] TALK'}
-                                </span>
-                                <span className={currentQuestionProgress?.hasReadSummary ? 'text-neon-blue' : ''}>
-                                    {currentQuestionProgress?.hasReadSummary ? '[X] READ' : '[ ] READ'}
-                                </span>
-                            </div>
-
                         </div>
                     </div>
+
+                    {/* Collapsible content */}
+                    {isPanelExpanded && (
+                        <>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar min-h-0">
+                                <p className="text-gray-400 text-[10px] font-rajdhani flex items-center gap-1.5">
+                                    <Lightbulb className="w-3 h-3 text-electric-gold" />
+                                    Choose how you want to learn:
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleStartSimulation('listen')}
+                                        className="flex-1 py-2 text-[10px] bg-neon-blue/20 border border-neon-blue text-neon-blue font-rajdhani hover:bg-neon-blue/30 transition-colors rounded"
+                                    >
+                                        Listen
+                                    </button>
+                                    <button
+                                        onClick={() => handleStartSimulation('talk')}
+                                        className="flex-1 py-2 text-[10px] bg-electric-gold/20 border border-electric-gold text-electric-gold font-rajdhani hover:bg-electric-gold/30 transition-colors rounded"
+                                    >
+                                        Talk
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (selectedNode && world) {
+                                            updateQuestionProgress(world.id, selectedNode.questionId, 'summary');
+                                            setCurrentQuestionProgress(getQuestionProgress(world.id, selectedNode.questionId));
+                                            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                                            const questionSlug = slugify(selectedNode.question);
+                                            navigate(`/journey/${regionSlug}/${questionSlug}/summary`);
+                                        }
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1.5 py-2 text-[10px] rounded border border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 font-mono uppercase tracking-widest"
+                                >
+                                    <BookOpen className="w-3 h-3" />
+                                    Read Summary
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (selectedNode && world) {
+                                            const regionSlug = world.region.toLowerCase().replace(/\s+/g, '-');
+                                            const questionSlug = slugify(selectedNode.question);
+                                            navigate(`/journey/${regionSlug}/${questionSlug}/quiz`);
+                                        }
+                                    }}
+                                    disabled={!currentQuestionProgress?.hasListened || !currentQuestionProgress?.hasTalked || !currentQuestionProgress?.hasReadSummary}
+                                    className={`w-full flex items-center justify-center gap-2 py-3 rounded font-orbitron font-bold tracking-widest text-xs transition-all ${currentQuestionProgress?.hasListened && currentQuestionProgress?.hasTalked && currentQuestionProgress?.hasReadSummary
+                                        ? 'bg-neon-pink text-black border border-neon-pink hover:bg-white shadow-[0_0_12px_#ff00ff]'
+                                        : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {currentQuestionProgress?.isActivated ? (
+                                        <><Award className="w-4 h-4" /> NEURON ACTIVATED</>
+                                    ) : (
+                                        <><Zap className="w-4 h-4" /> ACTIVATE NEURON</>
+                                    )}
+                                </button>
+                                <div className="flex justify-between text-[9px] font-mono text-gray-500 uppercase">
+                                    <span className={currentQuestionProgress?.hasListened ? 'text-neon-blue' : ''}>
+                                        {currentQuestionProgress?.hasListened ? '[X] LISTEN' : '[ ] LISTEN'}
+                                    </span>
+                                    <span className={currentQuestionProgress?.hasTalked ? 'text-neon-blue' : ''}>
+                                        {currentQuestionProgress?.hasTalked ? '[X] TALK' : '[ ] TALK'}
+                                    </span>
+                                    <span className={currentQuestionProgress?.hasReadSummary ? 'text-neon-blue' : ''}>
+                                        {currentQuestionProgress?.hasReadSummary ? '[X] READ' : '[ ] READ'}
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </div>
