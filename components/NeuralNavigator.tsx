@@ -386,8 +386,8 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         ref={controlsRef as any}
                         enablePan={true}
-                        minDistance={5}
-                        maxDistance={200}
+                        minDistance={0.5}
+                        maxDistance={100}
                         dampingFactor={0.05}
                         target={[0, 0, 0]}
                     />

@@ -1,19 +1,19 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
-import { NetworkStructure } from '../types';
+import { NetworkStructure, QuestionProgress } from '../types';
 import { getNodePosition } from '../utils/questionLoader';
 import * as THREE from 'three';
 
 interface SynapseConnectionsProps {
     network: NetworkStructure;
     worldColor: string;
+    questionProgressMap: Record<number, QuestionProgress>;
 }
 
-const SynapseConnections: React.FC<SynapseConnectionsProps> = ({ network, worldColor }) => {
+const SynapseConnections: React.FC<SynapseConnectionsProps> = ({ network, worldColor, questionProgressMap }) => {
     const groupRef = useRef<THREE.Group>(null);
 
-    // Generate connections between adjacent columns
     const connections = useMemo(() => {
         const conns: Array<{
             start: { x: number; y: number; z: number };
@@ -32,9 +32,7 @@ const SynapseConnections: React.FC<SynapseConnectionsProps> = ({ network, worldC
                     network.columnSizes[currentNode.column - 1]
                 );
 
-                // Connect to a subset of nodes in the next column (not all, for visual clarity)
                 nextColumnNodes.forEach((nextNode, idx) => {
-                    // Connect to every 2nd or 3rd node to avoid clutter
                     if (idx % 2 === 0 || nextColumnNodes.length <= 4) {
                         const nextPos = getNodePosition(
                             nextNode.column,
@@ -42,10 +40,13 @@ const SynapseConnections: React.FC<SynapseConnectionsProps> = ({ network, worldC
                             network.columnSizes[nextNode.column - 1]
                         );
 
+                        const currentActivated = questionProgressMap[currentNode.questionId]?.isActivated ?? false;
+                        const nextActivated = questionProgressMap[nextNode.questionId]?.isActivated ?? false;
+
                         conns.push({
                             start: currentPos,
                             end: nextPos,
-                            active: currentNode.state === 'active' && nextNode.state === 'active'
+                            active: currentActivated || nextActivated
                         });
                     }
                 });
@@ -53,7 +54,7 @@ const SynapseConnections: React.FC<SynapseConnectionsProps> = ({ network, worldC
         }
 
         return conns;
-    }, [network]);
+    }, [network, questionProgressMap]);
 
     // Animate pulse effect
     useFrame((state) => {

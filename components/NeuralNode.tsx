@@ -35,7 +35,7 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
             if (isSelected) {
                 const scale = 1.15 + Math.sin(state.clock.elapsedTime * 3) * 0.08;
                 meshRef.current.scale.setScalar(scale);
-            } else if (node.state === 'active' || isActivated) {
+            } else if (isActivated) {
                 const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
                 meshRef.current.scale.setScalar(scale);
             } else {
@@ -47,17 +47,15 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
     const getNodeColor = () => {
         if (!node.isUnlocked) return '#333333';
         if (isActivated) return '#ff00ff';
-        if (isSelected) return '#ffffff';
-        if (node.state === 'active') return worldColor;
-        return hovered ? worldColor : '#666666';
+        if (isSelected) return '#888888';
+        return hovered ? '#777777' : '#555555';
     };
 
     const getIntensity = () => {
-        if (!node.isUnlocked) return 0.1;
-        if (isActivated) return 2.5;
-        if (isSelected) return 3.0;
-        if (node.state === 'active') return 2.0;
-        return hovered ? 1.0 : 0.5;
+        if (!node.isUnlocked) return 0.05;
+        if (isActivated) return 1.2;
+        if (isSelected) return 0.4;
+        return hovered ? 0.2 : 0.1;
     };
 
     const getOpacity = () => {
@@ -66,10 +64,8 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
         return 0.8;
     };
 
-    const getRingOpacity = (completed: boolean) => {
-        if (!node.isUnlocked) return 0.15;
-        if (isActivated) return 0.8;
-        return completed ? 0.9 : 0.25;
+    const getRingOpacity = () => {
+        return isActivated ? 0.8 : 0.9;
     };
 
     return (
@@ -94,7 +90,7 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
                 document.body.style.cursor = 'default';
             }}
         >
-            <sphereGeometry args={[0.3, 32, 32]} />
+            <sphereGeometry args={[0.5, 32, 32]} />
             <meshPhysicalMaterial
                 color={getNodeColor()}
                 emissive={getNodeColor()}
@@ -107,49 +103,51 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
                 clearcoatRoughness={0.1}
             />
 
-            {/* 3 mode rings: Listen (inner), Talk (middle), Read (outer) */}
-            {node.isUnlocked && (
-                <>
-                    <mesh rotation={[Math.PI / 2, 0, 0]}>
-                        <ringGeometry args={[0.32, 0.35, 32]} />
-                        <meshBasicMaterial
-                            color={RING_COLORS.listen}
-                            transparent
-                            opacity={getRingOpacity(hasListened)}
-                            side={THREE.DoubleSide}
-                            blending={THREE.AdditiveBlending}
-                            depthWrite={false}
-                        />
-                    </mesh>
-                    <mesh rotation={[Math.PI / 2, 0, 0]}>
-                        <ringGeometry args={[0.37, 0.40, 32]} />
-                        <meshBasicMaterial
-                            color={RING_COLORS.talk}
-                            transparent
-                            opacity={getRingOpacity(hasTalked)}
-                            side={THREE.DoubleSide}
-                            blending={THREE.AdditiveBlending}
-                            depthWrite={false}
-                        />
-                    </mesh>
-                    <mesh rotation={[Math.PI / 2, 0, 0]}>
-                        <ringGeometry args={[0.42, 0.45, 32]} />
-                        <meshBasicMaterial
-                            color={RING_COLORS.read}
-                            transparent
-                            opacity={getRingOpacity(hasReadSummary)}
-                            side={THREE.DoubleSide}
-                            blending={THREE.AdditiveBlending}
-                            depthWrite={false}
-                        />
-                    </mesh>
-                </>
+            {/* Rings only appear once their mode is completed */}
+            {hasListened && (
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.58, 0.61, 48]} />
+                    <meshBasicMaterial
+                        color={RING_COLORS.listen}
+                        transparent
+                        opacity={getRingOpacity()}
+                        side={THREE.DoubleSide}
+                        blending={THREE.AdditiveBlending}
+                        depthWrite={false}
+                    />
+                </mesh>
+            )}
+            {hasTalked && (
+                <mesh rotation={[0, 0, 0]}>
+                    <ringGeometry args={[0.58, 0.61, 48]} />
+                    <meshBasicMaterial
+                        color={RING_COLORS.talk}
+                        transparent
+                        opacity={getRingOpacity()}
+                        side={THREE.DoubleSide}
+                        blending={THREE.AdditiveBlending}
+                        depthWrite={false}
+                    />
+                </mesh>
+            )}
+            {hasReadSummary && (
+                <mesh rotation={[0, Math.PI / 2, 0]}>
+                    <ringGeometry args={[0.58, 0.61, 48]} />
+                    <meshBasicMaterial
+                        color={RING_COLORS.read}
+                        transparent
+                        opacity={getRingOpacity()}
+                        side={THREE.DoubleSide}
+                        blending={THREE.AdditiveBlending}
+                        depthWrite={false}
+                    />
+                </mesh>
             )}
 
             {/* Lock indicator */}
             {!node.isUnlocked && (
-                <mesh position={[0, 0, 0.35]}>
-                    <boxGeometry args={[0.15, 0.2, 0.05]} />
+                <mesh position={[0, 0, 0.55]}>
+                    <boxGeometry args={[0.18, 0.24, 0.05]} />
                     <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
                 </mesh>
             )}
@@ -157,7 +155,7 @@ const NeuralNode: React.FC<NeuralNodeProps> = ({ node, position, onClick, worldC
 
             {/* Question label - only shown for first node and neighbors of activated nodes (reduces lag) */}
             {showLabel && (
-            <Html position={[0, 0.6, 0]} center distanceFactor={12} zIndexRange={[100, 0]}>
+            <Html position={[0, 0.85, 0]} center distanceFactor={12} zIndexRange={[100, 0]}>
                 <div
                     className={`
                         px-2 py-1 rounded backdrop-blur-md text-[10px] font-orbitron max-w-[140px] transition-all duration-300 transform

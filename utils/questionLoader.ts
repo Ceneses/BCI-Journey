@@ -46,7 +46,7 @@ export async function loadWorldQuestions(worldId: number): Promise<WorldQuestion
  */
 export function mapQuestionsToNetwork(questions: Question[]): NetworkStructure {
     // New distribution: 1 input, 8 hidden layers (5,10,15,19,19,15,10,5), 1 output
-    const columnSizes = [1, 5, 10, 15, 19, 19, 15, 10, 5, 1];
+    const columnSizes = [3, 5, 10, 15, 17, 17, 15, 10, 5, 3];
     const nodes: NeuralNode[] = [];
 
     let questionIndex = 0;
@@ -125,8 +125,8 @@ export function getVisibleLabelNodeIds(
  * Returns {x, y, z} coordinates for Three.js
  */
 export function getNodePosition(column: number, row: number, columnSize: number): { x: number; y: number; z: number } {
-    const TUNNEL_RADIUS = 3; // Radius of the tunnel
-    const COLUMN_SPACING = 5; // Distance between rings along the tunnel
+    const TUNNEL_RADIUS = 6; // Radius of the tunnel
+    const COLUMN_SPACING = 10; // Distance between rings along the tunnel
 
     // Z-axis: Progression down the tunnel
     // We start at z=0 and go negative to creating depth "into" the screen

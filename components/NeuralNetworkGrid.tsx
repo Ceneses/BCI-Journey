@@ -25,7 +25,7 @@ const NeuralNetworkGrid: React.FC<NeuralNetworkGridProps> = ({
     return (
         <group>
             {/* Synapse Connections */}
-            <SynapseConnections network={network} worldColor={worldColor} />
+            <SynapseConnections network={network} worldColor={worldColor} questionProgressMap={questionProgressMap} />
 
             {/* Neural Nodes */}
             {network.nodes.map((node) => {
