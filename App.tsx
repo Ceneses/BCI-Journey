@@ -8,6 +8,7 @@ import ExperimentSetupPage from './pages/ExperimentSetupPage';
 import ExperimentStartPage from './pages/ExperimentStartPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/journey/:worldName" element={<NeuralNavigatorPage />} />
         <Route path="/journey/:worldName/:questionSlug" element={<NeuralNavigatorPage />} />
         <Route path="/journey/:worldName/:questionSlug/:mode" element={<NeuralNavigatorPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
