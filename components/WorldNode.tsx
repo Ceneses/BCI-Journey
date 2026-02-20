@@ -115,28 +115,30 @@ const WorldNode: React.FC<WorldNodeProps> = ({ data, isSelected, onSelect }) => 
         />
       </mesh>
 
-      {/* Floating Label (Only visible on hover or select) */}
-      {(hovered || isSelected) && (
-        <Html position={[0, 0.6, 0]} center distanceFactor={10} zIndexRange={[100, 0]}>
-          <div className={`
+      {/* Keep region labels visible to improve map readability, especially on touch devices */}
+      <Html position={[0, 0.6, 0]} center distanceFactor={10} zIndexRange={[100, 0]}>
+        <div
+          className={`
               px-3 py-1 rounded backdrop-blur-md text-xs font-orbitron whitespace-nowrap transition-all duration-300 transform
-              ${isSelected ? 'bg-black border-2 scale-110' : 'bg-black/80 border scale-100'}
-            `} 
-            style={{ 
-                borderColor: data.color,
-                boxShadow: isSelected ? `0 0 20px ${data.color}` : `0 0 5px ${data.color}`
+              ${isSelected ? 'bg-black border-2 scale-110' : hovered ? 'bg-black/90 border scale-105' : 'bg-black/70 border scale-100'}
+            `}
+          style={{
+            borderColor: data.color,
+            boxShadow: isSelected ? `0 0 20px ${data.color}` : hovered ? `0 0 12px ${data.color}` : `0 0 5px ${data.color}`,
+            opacity: isSelected ? 1 : hovered ? 0.98 : 0.88
+          }}
+        >
+          <span
+            style={{
+              color: data.color,
+              textShadow: isSelected ? `0 0 10px ${data.color}` : 'none',
+              fontWeight: isSelected ? 'bold' : 'normal'
             }}
           >
-             <span style={{ 
-               color: data.color, 
-               textShadow: isSelected ? `0 0 10px ${data.color}` : 'none',
-               fontWeight: isSelected ? 'bold' : 'normal'
-             }}>
-                 {data.id}. {data.region}
-             </span>
-          </div>
-        </Html>
-      )}
+            {data.id}. {data.region}
+          </span>
+        </div>
+      </Html>
     </group>
   );
 };

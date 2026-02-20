@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { WorldData, SimulationScript } from '../types';
 import { generateSimulationScript, generateCharacterImage, generateCharacterSpeech } from '../services/geminiService';
 import { decodeAudioData, playAudioBuffer } from '../utils/audioUtils';
-import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users, BookOpen } from 'lucide-react';
+import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users, BookOpen, Play, Pause, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react';
 import LiveSession from './LiveSession';
 import LessonSummary from './LessonSummary';
 import { updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
@@ -27,10 +27,22 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
   const [phase, setPhase] = useState<Phase>(initialMode === 'talk' ? 'selection' : 'script');
   const [liveMode, setLiveMode] = useState<LiveMode>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Media States
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  // Stop audio when component unmounts or updates
+  useEffect(() => {
+    return () => {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Initialize Audio Context
@@ -47,10 +59,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         }
 
         setScript(data);
-        // Pre-load first step media
-        if (data.exchanges.length > 0 && initialMode !== 'talk') {
-          await loadStepMedia(data.exchanges[0], ctx);
-        }
+        // Pre-load first step media will happen via the currentStep useEffect
         setLoading(false);
       } catch (err: any) {
         console.error(err);
@@ -66,7 +75,25 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
     };
   }, [world]);
 
+  // Handle step changes and media loading
+  useEffect(() => {
+    if (script && audioContext && currentStep < script.exchanges.length) {
+      loadStepMedia(script.exchanges[currentStep], audioContext);
+    }
+  }, [script, currentStep, audioContext]);
+
   const loadStepMedia = async (exchange: any, ctx: AudioContext) => {
+    // Stop previous audio
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      audioSourceRef.current = null;
+    }
+    setIsPlaying(false);
+
     setGeneratingMedia(true);
     setCurrentImage(null); // Clear previous to show loading state if needed
 
@@ -81,7 +108,23 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
 
       if (audioBase64 && ctx) {
         const buffer = await decodeAudioData(audioBase64, ctx);
-        playAudioBuffer(buffer, ctx);
+        // Resume context if suspended (browser policy)
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        
+        const source = playAudioBuffer(buffer, ctx, () => {
+          setIsPlaying(false);
+          // Auto-advance logic
+          if (isAutoPlay) {
+             // We need to use a timeout to allow the user to digest the last bit, and to avoid state update loops if something is fast
+             setTimeout(() => {
+                handleNext();
+             }, 2000); // 2 second pause before next
+          }
+        });
+        audioSourceRef.current = source;
+        setIsPlaying(true);
       }
     } catch (e) {
       console.error("Media generation failed", e);
@@ -90,22 +133,67 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
     }
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (!script) return;
-    const nextIdx = currentStep + 1;
-    if (nextIdx < script.exchanges.length) {
-      setCurrentStep(nextIdx);
-      if (audioContext) {
-        await loadStepMedia(script.exchanges[nextIdx], audioContext);
+    
+    // Stop current audio if playing
+    if (audioSourceRef.current) {
+        try {
+            audioSourceRef.current.stop();
+        } catch (e) {}
+        audioSourceRef.current = null;
+        setIsPlaying(false);
+    }
+
+    setCurrentStep(prev => {
+      const nextIdx = prev + 1;
+      if (nextIdx < script.exchanges.length) {
+        return nextIdx;
+      } else {
+        // End of sequence
+        // We need to handle side effects outside of the state updater or use a useEffect for completion
+        // But for now, let's just trigger the phase change here if we are at the end
+        // Wait, state updaters shouldn't have side effects.
+        // Let's check the condition *before* setting state.
+        return prev; // We'll handle the transition separately
       }
-    } else {
-      // End of sequence, transition to Live Selection
-      if (initialMode === 'listen' && questionId) {
-        updateQuestionProgress(world.id, questionId, 'listen');
-      }
-      setPhase('selection');
+    });
+
+    // Check if we should transition (using current value, not the update function's future value)
+    if (currentStep >= script.exchanges.length - 1) {
+        if (initialMode === 'listen' && questionId) {
+            updateQuestionProgress(world.id, questionId, 'listen');
+        }
+        setPhase('selection');
     }
   };
+
+  const toggleAutoPlay = () => {
+    setIsAutoPlay(!isAutoPlay);
+  };
+
+  const togglePlayback = () => {
+    if (isPlaying) {
+        if (audioSourceRef.current) {
+            audioSourceRef.current.stop();
+            audioSourceRef.current = null;
+        }
+        setIsPlaying(false);
+    } else {
+        // Replay current step audio
+        if (script && audioContext) {
+            // We need to re-fetch or cache the audio? 
+            // The current implementation re-generates or we need to cache it.
+            // Since we don't have caching implemented yet, calling loadStepMedia again will re-generate.
+            // That's expensive.
+            // Ideally we should store the current AudioBuffer.
+            // For now, let's just re-trigger loadStepMedia which will re-generate.
+            // Optimization for later: Cache the AudioBuffer in a ref or state.
+             loadStepMedia(script.exchanges[currentStep], audioContext);
+        }
+    }
+  };
+
 
   const startLiveSession = (mode: LiveMode) => {
     setLiveMode(mode);
@@ -339,8 +427,30 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
               "{currentExchange.text}"
             </p>
 
-            {/* Next Button */}
-            <div className="absolute bottom-6 right-6">
+            {/* Controls */}
+            <div className="absolute bottom-6 right-6 flex items-center gap-4">
+              
+              {/* Auto-Play Toggle */}
+              <button
+                onClick={toggleAutoPlay}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-xs font-mono uppercase tracking-wider ${isAutoPlay ? 'bg-neon-blue/20 border-neon-blue text-neon-blue' : 'bg-white/5 border-gray-600 text-gray-500'}`}
+                title="Toggle Auto-Advance"
+              >
+                {isAutoPlay ? 'Auto-Play: ON' : 'Auto-Play: OFF'}
+              </button>
+
+              {/* Playback Controls */}
+              <div className="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
+                 <button
+                  onClick={togglePlayback}
+                  className="p-2 rounded-full bg-white/5 border border-white/20 text-white hover:bg-white/10 hover:border-white/40 transition-all hover:text-neon-blue"
+                  title={isPlaying ? "Stop Audio" : "Replay Audio"}
+                >
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
+                </button>
+              </div>
+
+              {/* Next Button */}
               <button
                 onClick={handleNext}
                 disabled={generatingMedia}

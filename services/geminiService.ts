@@ -80,14 +80,24 @@ export const generateSimulationScript = async (regionName: string, specificQuest
       - Synapse: Biological, calm, deep focus.
       - Spark: Digital, energetic, tech focus.
       
-      ${questionPrompt} and create a 3-part dialogue explaining it.
+      ${questionPrompt}.
       
+      Target Audience:
+      - Students aged 12-14.
+      - Keep explanations simple, vivid, and easy to digest.
+      - Use metaphors suitable for this age group (e.g., computer networks, city traffic, school systems).
+
+      Visual Instructions:
+      - The 'imagePrompt' should be a vivid, interesting description that visualizes the specific scientific facts being discussed in that exchange.
+      - Avoid generic "futuristic" descriptions. Instead, describe specific biological or technological processes in action (e.g., "A neuron firing an electrical impulse like a lightning bolt," or "Data packets traveling through a glowing fiber optic cable").
+      - Make the images exciting and memorable for young teenagers.
+
       Output JSON format:
       {
         "question": "The question title",
         "exchanges": [
-          { "speaker": "Synapse", "text": "...", "imagePrompt": "Description for a 3D organic render..." },
-          { "speaker": "Spark", "text": "...", "imagePrompt": "Description for a 3D digital/tech render..." },
+          { "speaker": "Synapse", "text": "...", "imagePrompt": "Detailed description of biological process..." },
+          { "speaker": "Spark", "text": "...", "imagePrompt": "Detailed description of technological process..." },
           { "speaker": "Both", "text": "...", "imagePrompt": "Description of them combining..." }
         ]
       }`,
