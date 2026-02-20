@@ -1,4 +1,5 @@
 import { Blob } from "@google/genai";
+import { log } from "./logger";
 
 export class AudioStreamer {
   public audioContext: AudioContext;
@@ -76,7 +77,7 @@ export class AudioStreamer {
       this.inputSource = source as any; 
 
     } catch (error) {
-      console.error("Error starting microphone:", error);
+      log.audio.error("Microphone init failed:", error);
       this.isRecording = false;
     }
   }
@@ -120,7 +121,7 @@ export class AudioStreamer {
       this.nextStartTime += audioBuffer.duration;
       
     } catch (error) {
-      console.error("Error playing audio chunk:", error);
+      log.audio.error("Playback failed:", error);
     }
   }
 

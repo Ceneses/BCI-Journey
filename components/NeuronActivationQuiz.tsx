@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateNeuronQuiz, generateLessonSummary, QuizQuestion } from '../services/geminiService'; // Update path if needed
 import { Brain, CheckCircle, XCircle, Award, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import { log } from '../utils/logger';
 import { updateQuestionProgress, addSomas } from '../utils/progressManager'; // Update path if needed
 
 const SOMA_VALUE_PER_QUESTION = 17000000;
@@ -48,7 +49,7 @@ const NeuronActivationQuiz: React.FC<NeuronActivationQuizProps> = ({
                 const quizData = await generateNeuronQuiz(question, regionName, points);
                 setQuestions(quizData);
             } catch (err) {
-                console.error("Failed to load quiz:", err);
+                log.gemini.error("Failed to load quiz:", err);
                 setError("Failed to generate synapse challenge.");
             } finally {
                 setLoading(false);

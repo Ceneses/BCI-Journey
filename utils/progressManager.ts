@@ -1,4 +1,5 @@
 import { UserProgress } from '../types';
+import { log } from './logger';
 
 const STORAGE_KEY_PREFIX = 'bci_journey_progress_';
 
@@ -13,7 +14,7 @@ export function loadProgress(worldId: number): UserProgress {
         try {
             return JSON.parse(stored) as UserProgress;
         } catch (error) {
-            console.error('Error parsing stored progress:', error);
+            log.progress.error("Failed to parse stored progress:", error);
         }
     }
 

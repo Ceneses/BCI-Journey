@@ -1,6 +1,8 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { GeneratedContent, SimulationScript, Speaker } from "../types";
+import { log } from "../utils/logger";
+import { DEBUG_FLAGS } from "../utils/debugFlags";
 
 let ai: GoogleGenAI | null = null;
 
@@ -49,7 +51,7 @@ export const generateWorldBriefing = async (
     return JSON.parse(text) as GeneratedContent;
 
   } catch (error) {
-    console.error("Error generating briefing:", error);
+    log.gemini.error("Briefing generation failed:", error);
     return {
       title: `Sector: ${regionName}`,
       briefing: baseDescription,
@@ -65,7 +67,7 @@ export const generateSimulationScript = async (regionName: string, specificQuest
     const client = getAIClient();
 
     if (!process.env.API_KEY) {
-      console.warn("API Key missing. Returning fallback simulation script.");
+      log.gemini.warn("API key missing, using fallback script");
       return getFallbackScript(regionName);
     }
 
@@ -110,20 +112,21 @@ export const generateSimulationScript = async (regionName: string, specificQuest
 
     // Clean up potential markdown code blocks
     const cleanText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    console.log("Raw Gemini Response:", cleanText); // Debug logging
+    log.gemini.debug("Raw response:", cleanText.length, "chars");
+    if (DEBUG_FLAGS.geminiVerbose) log.gemini.debug("Full payload:", cleanText);
 
     let parsed;
     try {
       parsed = JSON.parse(cleanText);
-      console.log("Parsed JSON:", parsed); // Debug logging
+      log.gemini.debug("JSON parsed, keys:", Object.keys(parsed));
     } catch (e) {
-      console.error("JSON Parse Error:", e);
+      log.gemini.error("JSON parse failed:", e);
       throw new Error("Failed to parse JSON response");
     }
 
     // Handle direct array response (fallback)
     if (Array.isArray(parsed)) {
-      console.warn("Received array directly instead of object. Wrapping in default structure.");
+      log.gemini.warn("Received array instead of object, wrapping in default structure");
       return {
         question: `Exploration of ${regionName}`,
         exchanges: parsed
@@ -140,14 +143,14 @@ export const generateSimulationScript = async (regionName: string, specificQuest
       }
 
       const keys = Object.keys(parsed).join(", ");
-      console.error("Validation Failed. Keys:", keys);
+      log.gemini.error("Script validation failed, received keys:", keys);
       throw new Error(`Invalid script structure: 'exchanges' array missing or invalid. Received keys: ${keys}`);
     }
 
     return parsed as SimulationScript;
 
   } catch (error) {
-    console.error("Error generating simulation script:", error);
+    log.gemini.error("Simulation script generation failed:", error);
     return getFallbackScript(regionName);
   }
 };
@@ -254,7 +257,7 @@ export const generateLessonSummary = async (question: string, regionName: string
     }
 
   } catch (error) {
-    console.error("Error generating lesson summary:", error);
+    log.gemini.error("Lesson summary generation failed:", error);
     return [
       "Error retrieving data from the bio-digital network.",
       "Signal interference detected in this sector.",
@@ -356,7 +359,7 @@ export const generateNeuronQuiz = async (
     }
 
   } catch (error) {
-    console.error("Error generating quiz:", error);
+    log.gemini.error("Quiz generation failed:", error);
     // Return fallback on error
     return [
       {

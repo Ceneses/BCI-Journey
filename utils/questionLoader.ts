@@ -1,4 +1,5 @@
 import { Question, WorldQuestions, NeuralNode, NetworkStructure } from '../types';
+import { log } from './logger';
 
 /**
  * Load questions for a specific world from JSON files
@@ -35,7 +36,7 @@ export async function loadWorldQuestions(worldId: number): Promise<WorldQuestion
         const data: WorldQuestions = await actualResponse.json();
         return data;
     } catch (error) {
-        console.error('Error loading world questions:', error);
+        log.questionLoader.error("Failed to load world questions:", error);
         throw error;
     }
 }
@@ -56,7 +57,7 @@ export function mapQuestionsToNetwork(questions: Question[]): NetworkStructure {
 
         for (let row = 0; row < columnSize; row++) {
             if (questionIndex >= questions.length) {
-                console.warn(`Not enough questions. Expected 100, got ${questions.length}`);
+                log.questionLoader.warn(`Not enough questions. Expected 100, got ${questions.length}`);
                 break;
             }
 

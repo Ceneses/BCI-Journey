@@ -3,6 +3,7 @@ import { WorldData, SimulationScript } from '../types';
 import { generateSimulationScript, generateCharacterImage, generateCharacterSpeech } from '../services/geminiService';
 import { decodeAudioData, playAudioBuffer } from '../utils/audioUtils';
 import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users, BookOpen, Play, Pause, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react';
+import { log } from '../utils/logger';
 import LiveSession from './LiveSession';
 import LessonSummary from './LessonSummary';
 import { updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
@@ -62,7 +63,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         // Pre-load first step media will happen via the currentStep useEffect
         setLoading(false);
       } catch (err: any) {
-        console.error(err);
+        log.gemini.error("Script load failed:", err);
         setError(err.message || "Failed to initialize simulation");
         setLoading(false);
       }
@@ -127,7 +128,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         setIsPlaying(true);
       }
     } catch (e) {
-      console.error("Media generation failed", e);
+      log.gemini.error("Media generation failed:", e);
     } finally {
       setGeneratingMedia(false);
     }
