@@ -150,13 +150,19 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
             }
 
         } else {
-            // If no slug, clear selection (e.g. back navigation)
-            setSelectedNode(null);
+            // If no slug, center camera on next node when entering a world
+            if (nextNodeToExplore) {
+                setSelectedNode(nextNodeToExplore);
+                setCurrentQuestionProgress(getQuestionProgress(world.id, nextNodeToExplore.questionId));
+            } else {
+                setSelectedNode(null);
+                setCurrentQuestionProgress(null);
+            }
             setShowSimulation(false);
             setShowSummary(false);
             setShowQuiz(false);
         }
-    }, [network, initialQuestionSlug, initialMode, world]);
+    }, [network, initialQuestionSlug, initialMode, world, nextNodeToExplore]);
 
     useEffect(() => {
         // Auto-hide teaser after 3 seconds

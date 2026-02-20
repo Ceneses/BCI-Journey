@@ -25,10 +25,13 @@ export const decodeAudioData = async (
   return buffer;
 };
 
-export const playAudioBuffer = (buffer: AudioBuffer, context: AudioContext) => {
+export const playAudioBuffer = (buffer: AudioBuffer, context: AudioContext, onEnded?: () => void) => {
   const source = context.createBufferSource();
   source.buffer = buffer;
   source.connect(context.destination);
+  source.onended = () => {
+    if (onEnded) onEnded();
+  };
   source.start(0);
   return source; // Return source to stop if needed
 };
