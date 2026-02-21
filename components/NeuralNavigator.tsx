@@ -11,6 +11,7 @@ import { loadProgress, saveProgress, markQuestionComplete, isNodeUnlocked, isQue
 import { WORLDS } from '../constants';
 import NeuralNetworkGrid from './NeuralNetworkGrid';
 import LoadingTeaser from './LoadingTeaser';
+import { log } from '../utils/logger';
 import SimulationMode from './SimulationMode';
 import LessonSummary from './LessonSummary';
 import NeuronActivationQuiz from './NeuronActivationQuiz';
@@ -215,7 +216,7 @@ const NeuralNavigator: React.FC<NeuralNavigatorProps> = ({ worldId, initialQuest
 
             if (!silent) setLoading(false);
         } catch (err) {
-            console.error('Failed to load questions:', err);
+            log.navigation.error("Failed to load questions:", err);
             setError('Failed to load neural network. Please try again.');
             if (!silent) setLoading(false);
         }

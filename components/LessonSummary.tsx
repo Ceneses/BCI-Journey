@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { generateLessonSummary } from '../services/geminiService';
 import { Brain, BookOpen, Loader2, ArrowRight, Activity, X } from 'lucide-react';
+import { log } from '../utils/logger';
 
 interface LessonSummaryProps {
     question: string;
@@ -24,7 +25,7 @@ const LessonSummary: React.FC<LessonSummaryProps> = ({ question, regionName, onC
                     setError("No data received from the neural network.");
                 }
             } catch (err) {
-                console.error("Failed to load summary:", err);
+                log.gemini.error("Failed to load summary:", err);
                 setError("Connection interrupted. Please try again.");
             } finally {
                 setLoading(false);

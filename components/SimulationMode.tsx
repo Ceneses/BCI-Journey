@@ -3,6 +3,7 @@ import { WorldData, SimulationScript } from '../types';
 import { generateSimulationScript, generateCharacterImage, generateCharacterSpeech } from '../services/geminiService';
 import { decodeAudioData, playAudioBuffer } from '../utils/audioUtils';
 import { Zap, Activity, ArrowRight, Loader2, Maximize, Mic, Users, BookOpen, Play, Pause, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react';
+import { log } from '../utils/logger';
 import LiveSession from './LiveSession';
 import LessonSummary from './LessonSummary';
 import { updateQuestionProgress, getQuestionProgress } from '../utils/progressManager';
@@ -34,12 +35,26 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const generationIdRef = useRef(0);
+  const manuallyStoppedRef = useRef(false);
+  const autoAdvanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAutoPlayRef = useRef(isAutoPlay);
+  const currentStepRef = useRef(currentStep);
+  const scriptRef = useRef<SimulationScript | null>(script);
+  const handleNextRef = useRef<() => void>(() => {});
+
+  isAutoPlayRef.current = isAutoPlay;
+  currentStepRef.current = currentStep;
+  scriptRef.current = script;
 
   // Stop audio when component unmounts or updates
   useEffect(() => {
     return () => {
       if (audioSourceRef.current) {
         audioSourceRef.current.stop();
+      }
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
       }
     };
   }, []);
@@ -62,7 +77,7 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
         // Pre-load first step media will happen via the currentStep useEffect
         setLoading(false);
       } catch (err: any) {
-        console.error(err);
+        log.gemini.error("Script load failed:", err);
         setError(err.message || "Failed to initialize simulation");
         setLoading(false);
       }
@@ -83,7 +98,13 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
   }, [script, currentStep, audioContext]);
 
   const loadStepMedia = async (exchange: any, ctx: AudioContext) => {
-    // Stop previous audio
+    const thisGenerationId = ++generationIdRef.current;
+
+    manuallyStoppedRef.current = true;
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
     if (audioSourceRef.current) {
       try {
         audioSourceRef.current.stop();
@@ -95,78 +116,76 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
     setIsPlaying(false);
 
     setGeneratingMedia(true);
-    setCurrentImage(null); // Clear previous to show loading state if needed
+    setCurrentImage(null);
 
     try {
-      // Parallel generation
       const [imgBase64, audioBase64] = await Promise.all([
         generateCharacterImage(exchange.imagePrompt),
         generateCharacterSpeech(exchange.text, exchange.speaker)
       ]);
 
+      if (thisGenerationId !== generationIdRef.current) return;
+
       setCurrentImage(`data:image/png;base64,${imgBase64}`);
 
       if (audioBase64 && ctx) {
         const buffer = await decodeAudioData(audioBase64, ctx);
-        // Resume context if suspended (browser policy)
+        if (thisGenerationId !== generationIdRef.current) return;
+
         if (ctx.state === 'suspended') {
           await ctx.resume();
         }
-        
+
+        manuallyStoppedRef.current = false;
         const source = playAudioBuffer(buffer, ctx, () => {
+          if (manuallyStoppedRef.current) return;
           setIsPlaying(false);
-          // Auto-advance logic
-          if (isAutoPlay) {
-             // We need to use a timeout to allow the user to digest the last bit, and to avoid state update loops if something is fast
-             setTimeout(() => {
-                handleNext();
-             }, 2000); // 2 second pause before next
+          if (isAutoPlayRef.current) {
+            autoAdvanceTimeoutRef.current = setTimeout(() => {
+              autoAdvanceTimeoutRef.current = null;
+              handleNextRef.current();
+            }, 2000);
           }
         });
         audioSourceRef.current = source;
         setIsPlaying(true);
       }
     } catch (e) {
-      console.error("Media generation failed", e);
+      if (thisGenerationId !== generationIdRef.current) return;
+      log.gemini.error("Media generation failed:", e);
     } finally {
-      setGeneratingMedia(false);
+      if (thisGenerationId === generationIdRef.current) {
+        setGeneratingMedia(false);
+      }
     }
   };
 
   const handleNext = () => {
     if (!script) return;
-    
-    // Stop current audio if playing
+
+    manuallyStoppedRef.current = true;
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
     if (audioSourceRef.current) {
-        try {
-            audioSourceRef.current.stop();
-        } catch (e) {}
-        audioSourceRef.current = null;
-        setIsPlaying(false);
+      try {
+        audioSourceRef.current.stop();
+      } catch (e) {}
+      audioSourceRef.current = null;
+      setIsPlaying(false);
     }
 
-    setCurrentStep(prev => {
-      const nextIdx = prev + 1;
-      if (nextIdx < script.exchanges.length) {
-        return nextIdx;
-      } else {
-        // End of sequence
-        // We need to handle side effects outside of the state updater or use a useEffect for completion
-        // But for now, let's just trigger the phase change here if we are at the end
-        // Wait, state updaters shouldn't have side effects.
-        // Let's check the condition *before* setting state.
-        return prev; // We'll handle the transition separately
+    if (currentStep < script.exchanges.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      if (initialMode === 'listen' && questionId) {
+        updateQuestionProgress(world.id, questionId, 'listen');
       }
-    });
-
-    // Check if we should transition (using current value, not the update function's future value)
-    if (currentStep >= script.exchanges.length - 1) {
-        if (initialMode === 'listen' && questionId) {
-            updateQuestionProgress(world.id, questionId, 'listen');
-        }
-        setPhase('selection');
+      setPhase('selection');
     }
   };
+  handleNextRef.current = handleNext;
 
   const toggleAutoPlay = () => {
     setIsAutoPlay(!isAutoPlay);
@@ -174,21 +193,18 @@ const SimulationMode: React.FC<SimulationModeProps> = ({ world, onExit, question
 
   const togglePlayback = () => {
     if (isPlaying) {
+        manuallyStoppedRef.current = true;
+        if (autoAdvanceTimeoutRef.current) {
+          clearTimeout(autoAdvanceTimeoutRef.current);
+          autoAdvanceTimeoutRef.current = null;
+        }
         if (audioSourceRef.current) {
             audioSourceRef.current.stop();
             audioSourceRef.current = null;
         }
         setIsPlaying(false);
     } else {
-        // Replay current step audio
         if (script && audioContext) {
-            // We need to re-fetch or cache the audio? 
-            // The current implementation re-generates or we need to cache it.
-            // Since we don't have caching implemented yet, calling loadStepMedia again will re-generate.
-            // That's expensive.
-            // Ideally we should store the current AudioBuffer.
-            // For now, let's just re-trigger loadStepMedia which will re-generate.
-            // Optimization for later: Cache the AudioBuffer in a ref or state.
              loadStepMedia(script.exchanges[currentStep], audioContext);
         }
     }

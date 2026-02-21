@@ -21,7 +21,7 @@ export const WORLDS: WorldData[] = [
     color: "#ffd700", // Electric Gold
     position: { x: 0, y: 2.5, z: 1.0 },
     connections: [1, 3, 6],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Understand neural communication."
   },
   {
@@ -32,7 +32,7 @@ export const WORLDS: WorldData[] = [
     color: "#ff00ff", // Neon Pink
     position: { x: 0, y: 2.2, z: -1.5 },
     connections: [2, 4, 5],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Grasp the core concepts of BCI."
   },
   {
@@ -43,7 +43,7 @@ export const WORLDS: WorldData[] = [
     color: "#ff4d00", // Bright Orange
     position: { x: 0, y: 0.5, z: -3.8 },
     connections: [3, 5],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Master the hardware of BCI."
   },
   {
@@ -54,7 +54,7 @@ export const WORLDS: WorldData[] = [
     color: "#00ff41", // Matrix Green
     position: { x: 3.2, y: 0, z: 0.5 }, // Right hemisphere representation
     connections: [1, 3, 4, 8],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Interpret brainwave data."
   },
   {
@@ -65,7 +65,7 @@ export const WORLDS: WorldData[] = [
     color: "#9d00ff", // Deep Purple
     position: { x: 0, y: -2.0, z: -2.5 },
     connections: [2, 7],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Analyze sensory input processing."
   },
   {
@@ -76,7 +76,7 @@ export const WORLDS: WorldData[] = [
     color: "#ff0000", // Alert Red
     position: { x: 0, y: -3.5, z: 0 },
     connections: [6, 9],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Apply BCI to solve human problems."
   },
   {
@@ -87,7 +87,7 @@ export const WORLDS: WorldData[] = [
     color: "#ff0099", // Hot Pink
     position: { x: 0, y: -0.5, z: 4 }, // Deep internal
     connections: [1, 5, 9],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Create interactive BCI experiences."
   },
   {
@@ -98,7 +98,7 @@ export const WORLDS: WorldData[] = [
     color: "#0c5ec2", // Pure Yellow
     position: { x: 0, y: 1.0, z: 0 }, // Center
     connections: [1, 7, 8],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Unlock the power of neural data science."
   },
   {
@@ -109,7 +109,7 @@ export const WORLDS: WorldData[] = [
     color: "#ffffff", // Pure White
     position: { x: -3.2, y: 0, z: 0.5 }, // Left hemisphere mirroring temporal
     connections: [1, 2],
-    isLocked: true,
+    isLocked: false,
     learningObjective: "Navigate the ethics of neurotechnology."
   }
 ];

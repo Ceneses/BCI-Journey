@@ -3,6 +3,7 @@ import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } f
 import { Mic, MicOff, X, Activity, Zap, Radio, MessageSquare, User, Cpu, ClipboardCheck, ArrowRight, ChevronRight, Image as ImageIcon, Loader2, Minimize2, AlertTriangle } from 'lucide-react';
 import { AudioStreamer } from '../utils/audioStreamer';
 import { generateCharacterImage } from '../services/geminiService';
+import { log } from '../utils/logger';
 
 interface LiveSessionProps {
   mode: 'Synapse' | 'Spark';
@@ -51,7 +52,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose, onReadSummary 
 
     const initSession = async () => {
       if (!process.env.API_KEY) {
-        console.error("API Key missing");
+        log.liveSession.error("Cannot init: API key missing");
         return;
       }
 
@@ -117,7 +118,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose, onReadSummary 
             onopen: async () => {
               if (!isMounted) return;
               setIsConnected(true);
-              console.log("Live Session Connected");
+              log.liveSession.debug("Connected");
               await audioStreamerRef.current?.startRecording();
               startVisualizer();
             },
@@ -186,11 +187,11 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose, onReadSummary 
               }
             },
             onclose: () => {
-              console.log("Session closed");
+              log.liveSession.debug("Disconnected");
               setIsConnected(false);
             },
             onerror: (err) => {
-              console.error("Session error:", err);
+              log.liveSession.error("Session error:", err);
             }
           }
         });
@@ -200,7 +201,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose, onReadSummary 
         });
 
       } catch (e) {
-        console.error("Failed to connect live session", e);
+        log.liveSession.error("Failed to connect:", e);
       }
     };
 
@@ -248,7 +249,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ mode, onClose, onReadSummary 
         });
       }
     } catch (e) {
-      console.error("Image generation failed", e);
+      log.liveSession.error("Image generation failed:", e);
       if (sessionRef.current) {
         sessionRef.current.sendToolResponse({
           functionResponses: [{
