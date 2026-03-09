@@ -2,10 +2,10 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "feature_hcy" ]
     tags: [ 'v*.*.*' ]  # 添加标签触发，用于版本发布
   pull_request:
-    branches: [ "main" ]
+    branches: [ "feature_hcy" ]
 
 env:
   REGISTRY: docker.io  # 如果是使用 Docker Hub
