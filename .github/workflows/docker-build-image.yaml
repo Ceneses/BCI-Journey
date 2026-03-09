@@ -28,7 +28,7 @@ on:
 env:
   REGISTRY: docker.io  # 如果是使用 Docker Hub
   # REGISTRY: ghcr.io  # 如果使用 GitHub Container Registry
-  IMAGE_NAME: ${{ github.repository }}  # 使用仓库名作为镜像名
+  IMAGE_NAME: bci  # 使用仓库名作为镜像名
 
 jobs:
   build:
