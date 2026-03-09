@@ -6,7 +6,7 @@ on:
     tags: [ 'v*.*.*' ]  # 添加标签触发，用于版本发布
   pull_request:
     branches: [ "feature_hcy" ]
-
+  workflow_dispatch:
 env:
   REGISTRY: docker.io  # 如果是使用 Docker Hub
   # REGISTRY: ghcr.io  # 如果使用 GitHub Container Registry
