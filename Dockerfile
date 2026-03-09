@@ -7,8 +7,8 @@ WORKDIR /app
 # 复制 package.json 和 package-lock.json（或 yarn.lock）
 COPY package*.json ./
 
-# 安装依赖（使用 npm，如果你用 yarn/pnpm 可以替换）
-RUN npm ci --only=production
+# 安装所有依赖（包括 devDependencies），用于构建
+RUN npm ci
 
 # 复制项目所有源代码
 COPY . .
