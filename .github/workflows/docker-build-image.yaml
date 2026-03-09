@@ -2,10 +2,28 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "feature_hcy" ]
     tags: [ 'v*.*.*' ]  # 添加标签触发，用于版本发布
   pull_request:
-    branches: [ "main" ]
+    branches: [ "feature_hcy" ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '选择要构建的分支'
+        required: true
+        default: 'feature_hcy'
+        type: choice
+        options:
+          - feature_hcy
+          # 可以在这里添加其他分支选项
+      environment:
+        description: '构建环境'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 env:
   REGISTRY: docker.io  # 如果是使用 Docker Hub
@@ -22,6 +40,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || 'feature_hcy' }}  # 手动触发时使用选定的分支
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -49,6 +69,7 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=sha,format=short
+          type=raw,value=feature-hcy-{{sha}},enable=${{ github.ref == 'refs/heads/feature_hcy' }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -59,3 +80,6 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          BRANCH=${{ github.event.inputs.branch || 'feature_hcy' }}
+          ENVIRONMENT=${{ github.event.inputs.environment || 'staging' }}
